@@ -1,137 +1,68 @@
 {% extends "base.html" %}
-{% block title %}ผู้สมัคร — {{ election.title }}{% endblock %}
+{% block title %}ผู้สมัคร — Election Web{% endblock %}
 
 {% block content %}
-<div class="mb-3">
-  <a href="{{ url_for('admin.elections') }}" class="btn btn-ghost btn-sm mb-1">← จัดการวาระ</a>
-  <h1>{{ election.title }}</h1>
-  <p class="text-muted">จัดการผู้สมัครในวาระนี้</p>
-</div>
-
-{# ── Add Candidate ── #}
-<div class="card mb-3">
-  <div class="card-header"><h2 style="font-size:1rem;">เพิ่มผู้สมัคร</h2></div>
-  <div class="card-body">
-    <form method="POST" action="{{ url_for('admin.add_candidate', election_id=election.id) }}">
-      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
-      <div style="display:grid; grid-template-columns:80px 1fr 1fr; gap:1rem; align-items:end;">
-        <div class="form-group" style="margin:0;">
-          <label for="number">หมายเลข</label>
-          <input type="number" id="number" name="number" class="form-control" min="1" placeholder="1" />
-        </div>
-        <div class="form-group" style="margin:0;">
-          <label for="name">ชื่อผู้สมัคร <span class="required">*</span></label>
-          <input type="text" id="name" name="name" class="form-control" required placeholder="ชื่อ-นามสกุล" />
-        </div>
-        <div class="form-group" style="margin:0;">
-          <label for="party">พรรค/กลุ่ม</label>
-          <input type="text" id="party" name="party" class="form-control" placeholder="ชื่อพรรคหรือกลุ่ม" />
-        </div>
-      </div>
-      <div class="form-group mt-2" style="margin-bottom:.75rem;">
-        <label for="bio">นโยบาย/ประวัติ</label>
-        <textarea id="bio" name="bio" class="form-control" rows="2" placeholder="รายละเอียดผู้สมัคร นโยบาย ประวัติ ฯลฯ"></textarea>
-      </div>
-      <div class="form-group" style="margin-bottom:0;">
-        <label for="photo_url">URL รูปภาพ</label>
-        <input type="url" id="photo_url" name="photo_url" class="form-control" placeholder="https://..." />
-      </div>
-      <button type="submit" class="btn btn-primary mt-2">+ เพิ่มผู้สมัคร</button>
-    </form>
+<div class="d-flex align-center justify-between flex-wrap gap-2 mb-3">
+  <div>
+    <h1>รายชื่อผู้สมัคร</h1>
+    <p class="text-muted">ข้อมูลผู้สมัครแยกตามวาระการเลือกตั้ง</p>
   </div>
 </div>
 
-{# ── Candidates List ── #}
-<div class="card">
+{% for election, candidates in by_election.items() %}
+<div class="card mb-3">
   <div class="card-header">
-    <h2 style="font-size:1rem;">ผู้สมัครทั้งหมด ({{ candidates | length }})</h2>
-    {% if candidates %}
-    <a href="{{ url_for('admin.export_results', election_id=election.id) }}" class="btn btn-ghost btn-sm">⬇ Excel ผลคะแนน</a>
-    {% endif %}
+    <div>
+      <h2 style="font-size:1.05rem;">{{ election.title }}</h2>
+      <span class="badge badge-{{ election.status }} mt-1">
+        <span class="status-dot {{ election.status }}"></span>
+        {% if election.status == 'open' %}กำลังเปิด
+        {% elif election.status == 'pending' %}รอดำเนินการ
+        {% else %}ปิดแล้ว{% endif %}
+      </span>
+    </div>
+    <div style="display:flex; gap:.5rem; flex-wrap:wrap;">
+      <a href="{{ url_for('vote.results', election_id=election.id) }}" class="btn btn-outline btn-sm">ดูผลคะแนน</a>
+      {% if current_user.is_authenticated %}
+        <a href="{{ url_for('candidates.export_excel', election_id=election.id) }}" class="btn btn-ghost btn-sm">⬇ Excel</a>
+      {% endif %}
+    </div>
   </div>
 
   {% if candidates %}
-  <div class="table-wrap">
-    <table class="table">
-      <thead>
-        <tr>
-          <th>หมายเลข</th>
-          <th>ชื่อ</th>
-          <th>พรรค/กลุ่ม</th>
-          <th>นโยบาย</th>
-          <th>การดำเนินการ</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for c in candidates %}
-        <tr id="row-{{ c.id }}">
-          <td style="font-weight:700;">{{ c.number or '—' }}</td>
-          <td style="font-weight:600;">{{ c.name }}</td>
-          <td style="color:var(--accent);">{{ c.party or '—' }}</td>
-          <td style="font-size:.82rem; color:var(--text-muted); max-width:200px;">
-            {{ c.bio | truncate(60) if c.bio else '—' }}
-          </td>
-          <td>
-            <div style="display:flex; gap:.4rem;">
-              {# Edit button → show inline form #}
-              <button onclick="toggleEdit({{ c.id }})" class="btn btn-outline btn-sm">แก้ไข</button>
-
-              <form method="POST" action="{{ url_for('admin.delete_candidate', candidate_id=c.id) }}"
-                    style="display:inline;" onsubmit="return confirm('ลบผู้สมัคร {{ c.name }}?')">
-                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
-                <button type="submit" class="btn btn-danger btn-sm">ลบ</button>
-              </form>
-            </div>
-          </td>
-        </tr>
-
-        {# Inline Edit Row #}
-        <tr id="edit-{{ c.id }}" style="display:none; background:var(--bg);">
-          <td colspan="5" style="padding:1rem;">
-            <form method="POST" action="{{ url_for('admin.edit_candidate', candidate_id=c.id) }}">
-              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
-              <div style="display:grid; grid-template-columns:80px 1fr 1fr; gap:.75rem; margin-bottom:.75rem;">
-                <div>
-                  <label style="font-size:.8rem;">หมายเลข</label>
-                  <input type="number" name="number" class="form-control" value="{{ c.number or '' }}" />
-                </div>
-                <div>
-                  <label style="font-size:.8rem;">ชื่อ <span class="required">*</span></label>
-                  <input type="text" name="name" class="form-control" value="{{ c.name }}" required />
-                </div>
-                <div>
-                  <label style="font-size:.8rem;">พรรค/กลุ่ม</label>
-                  <input type="text" name="party" class="form-control" value="{{ c.party or '' }}" />
-                </div>
-              </div>
-              <div style="margin-bottom:.75rem;">
-                <label style="font-size:.8rem;">นโยบาย/ประวัติ</label>
-                <textarea name="bio" class="form-control" rows="2">{{ c.bio or '' }}</textarea>
-              </div>
-              <div style="display:flex; gap:.5rem;">
-                <button type="submit" class="btn btn-primary btn-sm">บันทึก</button>
-                <button type="button" onclick="toggleEdit({{ c.id }})" class="btn btn-ghost btn-sm">ยกเลิก</button>
-              </div>
-            </form>
-          </td>
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
+  <div style="padding:1.25rem;">
+    <div class="grid-3">
+      {% for c in candidates %}
+      <div style="background:var(--bg-card); border:1px solid var(--border); border-radius:var(--radius-lg); padding:1.1rem;">
+        <div style="display:flex; align-items:center; gap:.75rem; margin-bottom:.75rem;">
+          <span class="candidate-number" style="margin:0; flex-shrink:0;">
+            {{ c.number or loop.index }}
+          </span>
+          <div>
+            <div class="candidate-name">{{ c.name }}</div>
+            {% if c.party %}
+              <div class="candidate-party">{{ c.party }}</div>
+            {% endif %}
+          </div>
+        </div>
+        {% if c.bio %}
+          <div class="candidate-bio">{{ c.bio }}</div>
+        {% endif %}
+      </div>
+      {% endfor %}
+    </div>
   </div>
   {% else %}
-  <div class="card-body empty-state">
-    <p>ยังไม่มีผู้สมัคร — เพิ่มผู้สมัครด้านบน</p>
+  <div class="card-body empty-state" style="padding:2rem;">
+    <p>ยังไม่มีผู้สมัครในวาระนี้</p>
   </div>
   {% endif %}
 </div>
-{% endblock %}
-
-{% block scripts %}
-<script>
-function toggleEdit(id) {
-  const row = document.getElementById('edit-' + id);
-  row.style.display = row.style.display === 'none' ? 'table-row' : 'none';
-}
-</script>
+{% else %}
+<div class="empty-state">
+  <div class="empty-icon">👥</div>
+  <h2 style="font-size:1.1rem;">ยังไม่มีผู้สมัคร</h2>
+  <p>ยังไม่มีผู้สมัครในระบบ</p>
+</div>
+{% endfor %}
 {% endblock %}
