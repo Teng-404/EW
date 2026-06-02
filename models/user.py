@@ -109,3 +109,33 @@ class User(UserMixin):
         result = cur.fetchone()
         cur.close()
         return result is not None
+    
+    @classmethod
+    def get_all(cls) -> list["User"]:
+        """คืน user ทั้งหมด เรียงตาม id"""
+        conn = get_db()
+        cur  = conn.cursor(dictionary=True)
+        cur.execute("SELECT * FROM users ORDER BY id")
+        rows = cur.fetchall()
+        cur.close()
+        return [cls(r) for r in rows]
+ 
+    def set_role(self, role: str) -> None:
+        """เปลี่ยน role: 'voter' หรือ 'admin'"""
+        if role not in ("voter", "admin"):
+            raise ValueError("role ต้องเป็น 'voter' หรือ 'admin'")
+        conn = get_db()
+        cur  = conn.cursor()
+        cur.execute("UPDATE users SET role = %s WHERE id = %s", (role, self.id))
+        conn.commit()
+        cur.close()
+        self.role = role
+ 
+    def set_active(self, is_active: bool) -> None:
+        """เปิด/ระงับบัญชี"""
+        conn = get_db()
+        cur  = conn.cursor()
+        cur.execute("UPDATE users SET is_active = %s WHERE id = %s", (is_active, self.id))
+        conn.commit()
+        cur.close()
+        self._is_active = is_active

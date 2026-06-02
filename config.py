@@ -12,7 +12,7 @@ class Config:
 
     # ── Database ───────────────────────────────────────────
     DB_HOST: str     = os.getenv("DB_HOST", "localhost")
-    DB_PORT: int     = int(os.getenv("DB_PORT", 3306))
+    DB_PORT: int     = int(os.getenv("DB_PORT", 3307))
     DB_USER: str     = os.getenv("DB_USER", "root")
     DB_PASSWORD: str = os.getenv("DB_PASSWORD", "")
     DB_NAME: str     = os.getenv("DB_NAME", "election_db")
