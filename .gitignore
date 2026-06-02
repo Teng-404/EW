@@ -1,4 +1,4 @@
-.env  # ซ่อน DB password และ secret key
+.env   # ซ่อน DB password และ secret key
 venv/  # ซ่อน virtual environment
 __pycache__/
 *.pyc
