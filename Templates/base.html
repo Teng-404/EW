@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{% block title %}Election Web{% endblock %}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}" />
+  {% block head %}{% endblock %}
+</head>
+<body>
+
+  {# ── Navbar ── #}
+  <nav class="navbar">
+    <div class="container">
+      <a href="{{ url_for('vote.index') }}" class="navbar-brand">
+        <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+          <path d="M9 11l3 3L22 4M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/>
+        </svg>
+        Election Web
+      </a>
+
+      <ul class="navbar-nav">
+        <li><a href="{{ url_for('vote.index') }}"        class="nav-link"><span>หน้าแรก</span></a></li>
+        <li><a href="{{ url_for('candidates.list_all') }}" class="nav-link"><span>ผู้สมัคร</span></a></li>
+
+        {% if current_user.is_authenticated %}
+          {% if current_user.is_admin %}
+            <li><a href="{{ url_for('admin.dashboard') }}" class="nav-link">
+              <span>Admin</span>
+              <span class="nav-badge">A</span>
+            </a></li>
+          {% endif %}
+          <li><a href="{{ url_for('auth.logout') }}" class="nav-link"><span>ออกจากระบบ</span></a></li>
+          <li>
+            <span class="nav-link" style="color:rgba(255,255,255,.6);cursor:default;font-size:.8rem;">
+              {{ current_user.full_name.split()[0] }}
+            </span>
+          </li>
+        {% else %}
+          <li><a href="{{ url_for('auth.login') }}"    class="nav-link"><span>เข้าสู่ระบบ</span></a></li>
+          <li><a href="{{ url_for('auth.register') }}" class="nav-link"><span>สมัคร</span></a></li>
+        {% endif %}
+      </ul>
+    </div>
+  </nav>
+
+  {# ── Flash Messages ── #}
+  <div class="flash-container" id="flashContainer">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% for category, message in messages %}
+        <div class="flash {{ category }}" role="alert">
+          <span class="flash-icon">
+            {% if category == 'success' %}✓
+            {% elif category == 'danger'  %}✕
+            {% elif category == 'warning' %}⚠
+            {% else %}ℹ
+            {% endif %}
+          </span>
+          <span class="flash-body">{{ message }}</span>
+          <button class="flash-close" onclick="this.parentElement.remove()" aria-label="ปิด">✕</button>
+        </div>
+      {% endfor %}
+    {% endwith %}
+  </div>
+
+  {# ── Main Content ── #}
+  <main class="page-content">
+    <div class="container">
+      {% block content %}{% endblock %}
+    </div>
+  </main>
+
+  {# ── Scripts ── #}
+  <script>
+    // Auto-dismiss flash after 5s
+    setTimeout(() => {
+      document.querySelectorAll('.flash').forEach(el => {
+        el.style.transition = 'opacity .4s';
+        el.style.opacity = '0';
+        setTimeout(() => el.remove(), 400);
+      });
+    }, 5000);
+  </script>
+  {% block scripts %}{% endblock %}
+</body>
+</html>
