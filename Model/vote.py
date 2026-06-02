@@ -4,6 +4,8 @@ models/vote.py — Vote model + OTP helper
 แยก logic การ vote และ OTP ออกจาก route
 """
 
+from __future__ import annotations
+
 import random
 import string
 from datetime import datetime, timedelta

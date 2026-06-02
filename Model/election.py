@@ -4,6 +4,8 @@ models/election.py — Election model
 จัดการวาระการเลือกตั้ง: สร้าง, เปิด/ปิด, ดึงข้อมูล
 """
 
+from __future__ import annotations
+
 from datetime import datetime
 from db import get_db
 

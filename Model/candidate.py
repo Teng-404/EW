@@ -4,6 +4,8 @@ models/candidate.py — Candidate model
 ผู้สมัครแต่ละคนผูกกับวาระ (election_id)
 """
 
+from __future__ import annotations
+
 from db import get_db
 
 

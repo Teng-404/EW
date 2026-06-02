@@ -8,7 +8,6 @@ db.py — MySQL connection helper
     cursor = conn.cursor(dictionary=True)
 """
 
-import mysql.connector
 from mysql.connector import pooling
 from flask import g
 from config import ActiveConfig

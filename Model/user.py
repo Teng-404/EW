@@ -5,6 +5,8 @@ models/user.py — User model
 ทุก query ผ่าน get_db() เพื่อใช้ connection pool
 """
 
+from __future__ import annotations
+
 import bcrypt
 from flask_login import UserMixin
 from db import get_db
