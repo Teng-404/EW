@@ -1,5 +1,5 @@
-.env   # ซ่อน DB password และ secret key
-venv/  # ซ่อน virtual environment
+.env
+venv/
 __pycache__/
 *.pyc
 .vscode/
