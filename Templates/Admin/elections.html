@@ -1,0 +1,116 @@
+{% extends "base.html" %}
+{% block title %}จัดการวาระ — Admin{% endblock %}
+
+{% block content %}
+<div class="d-flex align-center justify-between flex-wrap gap-2 mb-3">
+  <div>
+    <a href="{{ url_for('admin.dashboard') }}" class="btn btn-ghost btn-sm mb-1">← Dashboard</a>
+    <h1>จัดการวาระการเลือกตั้ง</h1>
+  </div>
+</div>
+
+{# ── Create Election ── #}
+<div class="card mb-3">
+  <div class="card-header"><h2 style="font-size:1rem;">สร้างวาระใหม่</h2></div>
+  <div class="card-body">
+    <form method="POST" action="{{ url_for('admin.create_election') }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:1rem;">
+        <div class="form-group" style="margin:0;">
+          <label for="title">ชื่อวาระ <span class="required">*</span></label>
+          <input type="text" id="title" name="title" class="form-control" required placeholder="เช่น การเลือกตั้งประธานนักเรียน 2568" />
+        </div>
+        <div class="form-group" style="margin:0;">
+          <label for="description">คำอธิบาย</label>
+          <input type="text" id="description" name="description" class="form-control" placeholder="รายละเอียดเพิ่มเติม (ถ้ามี)" />
+        </div>
+      </div>
+      <button type="submit" class="btn btn-primary mt-2">+ สร้างวาระ</button>
+    </form>
+  </div>
+</div>
+
+{# ── Elections Table ── #}
+<div class="card">
+  <div class="card-header"><h2 style="font-size:1rem;">วาระทั้งหมด ({{ elections | length }})</h2></div>
+  {% if elections %}
+  <div class="table-wrap">
+    <table class="table">
+      <thead>
+        <tr>
+          <th>ชื่อวาระ</th>
+          <th>สถานะ</th>
+          <th>เริ่ม / สิ้นสุด</th>
+          <th>การดำเนินการ</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for e in elections %}
+        <tr>
+          <td>
+            <div style="font-weight:600;">{{ e.title }}</div>
+            {% if e.description %}
+              <div style="font-size:.8rem; color:var(--text-muted);">{{ e.description }}</div>
+            {% endif %}
+          </td>
+          <td>
+            <span class="badge badge-{{ e.status }}">
+              <span class="status-dot {{ e.status }}"></span>
+              {{ e.status }}
+            </span>
+          </td>
+          <td style="font-size:.82rem; color:var(--text-muted);">
+            {% if e.start_time %}เริ่ม: {{ e.start_time.strftime('%d/%m/%y %H:%M') }}<br/>{% endif %}
+            {% if e.end_time  %}สิ้น: {{ e.end_time.strftime('%d/%m/%y %H:%M') }}{% endif %}
+            {% if not e.start_time and not e.end_time %}—{% endif %}
+          </td>
+          <td>
+            <div style="display:flex; gap:.4rem; flex-wrap:wrap;">
+              {# Status toggle #}
+              {% if e.status == 'pending' %}
+                <form method="POST" action="{{ url_for('admin.set_election_status', election_id=e.id) }}" style="display:inline;">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+                  <input type="hidden" name="status" value="open" />
+                  <button type="submit" class="btn btn-success btn-sm">เปิดรับคะแนน</button>
+                </form>
+              {% elif e.status == 'open' %}
+                <form method="POST" action="{{ url_for('admin.set_election_status', election_id=e.id) }}" style="display:inline;"
+                      onsubmit="return confirm('ปิดการลงคะแนน?')">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+                  <input type="hidden" name="status" value="closed" />
+                  <button type="submit" class="btn btn-warning btn-sm">ปิดการลงคะแนน</button>
+                </form>
+              {% else %}
+                <form method="POST" action="{{ url_for('admin.set_election_status', election_id=e.id) }}" style="display:inline;">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+                  <input type="hidden" name="status" value="pending" />
+                  <button type="submit" class="btn btn-ghost btn-sm">รีเซ็ต</button>
+                </form>
+              {% endif %}
+
+              <a href="{{ url_for('admin.manage_candidates', election_id=e.id) }}" class="btn btn-outline btn-sm">ผู้สมัคร</a>
+              <a href="{{ url_for('admin.voters', election_id=e.id) }}" class="btn btn-ghost btn-sm">ผู้โหวต</a>
+
+              {# Export #}
+              <a href="{{ url_for('admin.export_results', election_id=e.id) }}" class="btn btn-ghost btn-sm" title="Export ผลคะแนน">⬇</a>
+
+              {# Delete #}
+              <form method="POST" action="{{ url_for('admin.delete_election', election_id=e.id) }}" style="display:inline;"
+                    onsubmit="return confirm('ลบวาระนี้? จะลบผู้สมัครและคะแนนทั้งหมดด้วย')">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+                <button type="submit" class="btn btn-danger btn-sm">ลบ</button>
+              </form>
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="card-body empty-state">
+    <p>ยังไม่มีวาระการเลือกตั้ง — สร้างวาระแรกด้านบน</p>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

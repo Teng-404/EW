@@ -1,0 +1,77 @@
+{% extends "base.html" %}
+{% block title %}หน้าแรก — Election Web{% endblock %}
+
+{% block content %}
+<div class="mb-3">
+  <h1>การเลือกตั้งทั้งหมด</h1>
+  <p class="text-muted">เลือกวาระที่ต้องการลงคะแนนหรือดูผลคะแนน</p>
+</div>
+
+{% if elections %}
+  <div class="grid-2">
+    {% for election in elections %}
+    <div class="card" style="transition: box-shadow 150ms ease;">
+      <div class="card-header">
+        <div>
+          <h2 style="font-size:1.05rem; margin-bottom:.3rem;">{{ election.title }}</h2>
+          <span class="badge badge-{{ election.status }}">
+            <span class="status-dot {{ election.status }}"></span>
+            {% if election.status == 'open' %}กำลังเปิด
+            {% elif election.status == 'pending' %}รอดำเนินการ
+            {% else %}ปิดแล้ว{% endif %}
+          </span>
+        </div>
+        {% if election.id in voted_ids %}
+          <span style="color:var(--success); font-size:.82rem; font-weight:600; white-space:nowrap;">
+            ✓ ลงคะแนนแล้ว
+          </span>
+        {% endif %}
+      </div>
+
+      {% if election.description %}
+      <div style="padding: .9rem 1.4rem; border-bottom: 1px solid var(--border); font-size:.88rem; color:var(--text-muted);">
+        {{ election.description }}
+      </div>
+      {% endif %}
+
+      <div class="card-footer" style="display:flex; gap:.6rem; flex-wrap:wrap;">
+        {# ผลคะแนน — ดูได้เสมอ #}
+        <a href="{{ url_for('vote.results', election_id=election.id) }}" class="btn btn-outline btn-sm">
+          ดูผลคะแนน
+        </a>
+
+        {# ดูผู้สมัคร #}
+        <a href="{{ url_for('candidates.by_election', election_id=election.id) }}" class="btn btn-ghost btn-sm">
+          รายชื่อผู้สมัคร
+        </a>
+
+        {# ลงคะแนน — เฉพาะวาระ open และยังไม่ได้ vote #}
+        {% if election.is_open %}
+          {% if not current_user.is_authenticated %}
+            <a href="{{ url_for('auth.login') }}" class="btn btn-primary btn-sm">
+              เข้าสู่ระบบเพื่อลงคะแนน
+            </a>
+          {% elif election.id in voted_ids %}
+            <span class="btn btn-success btn-sm" style="cursor:default; opacity:.7;">✓ ลงคะแนนแล้ว</span>
+          {% else %}
+            <a href="{{ url_for('auth.request_otp', election_id=election.id) }}" class="btn btn-primary btn-sm">
+              ลงคะแนน
+            </a>
+          {% endif %}
+        {% endif %}
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+
+{% else %}
+  <div class="empty-state">
+    <div class="empty-icon">🗳️</div>
+    <h2 style="font-size:1.1rem;">ยังไม่มีวาระการเลือกตั้ง</h2>
+    <p>ผู้ดูแลระบบยังไม่ได้สร้างวาระการเลือกตั้ง</p>
+    {% if current_user.is_authenticated and current_user.is_admin %}
+      <a href="{{ url_for('admin.elections') }}" class="btn btn-primary mt-2">ไปที่ Admin Panel</a>
+    {% endif %}
+  </div>
+{% endif %}
+{% endblock %}

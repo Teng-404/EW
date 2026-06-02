@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+{% block title %}ผู้สมัคร — Election Web{% endblock %}
+
+{% block content %}
+<div class="d-flex align-center justify-between flex-wrap gap-2 mb-3">
+  <div>
+    <h1>รายชื่อผู้สมัคร</h1>
+    <p class="text-muted">ข้อมูลผู้สมัครแยกตามวาระการเลือกตั้ง</p>
+  </div>
+</div>
+
+{% for election, candidates in by_election.items() %}
+<div class="card mb-3">
+  <div class="card-header">
+    <div>
+      <h2 style="font-size:1.05rem;">{{ election.title }}</h2>
+      <span class="badge badge-{{ election.status }} mt-1">
+        <span class="status-dot {{ election.status }}"></span>
+        {% if election.status == 'open' %}กำลังเปิด
+        {% elif election.status == 'pending' %}รอดำเนินการ
+        {% else %}ปิดแล้ว{% endif %}
+      </span>
+    </div>
+    <div style="display:flex; gap:.5rem; flex-wrap:wrap;">
+      <a href="{{ url_for('vote.results', election_id=election.id) }}" class="btn btn-outline btn-sm">ดูผลคะแนน</a>
+      {% if current_user.is_authenticated %}
+        <a href="{{ url_for('candidates.export_excel', election_id=election.id) }}" class="btn btn-ghost btn-sm">⬇ Excel</a>
+      {% endif %}
+    </div>
+  </div>
+
+  {% if candidates %}
+  <div style="padding:1.25rem;">
+    <div class="grid-3">
+      {% for c in candidates %}
+      <div style="background:var(--bg-card); border:1px solid var(--border); border-radius:var(--radius-lg); padding:1.1rem;">
+        <div style="display:flex; align-items:center; gap:.75rem; margin-bottom:.75rem;">
+          <span class="candidate-number" style="margin:0; flex-shrink:0;">
+            {{ c.number or loop.index }}
+          </span>
+          <div>
+            <div class="candidate-name">{{ c.name }}</div>
+            {% if c.party %}
+              <div class="candidate-party">{{ c.party }}</div>
+            {% endif %}
+          </div>
+        </div>
+        {% if c.bio %}
+          <div class="candidate-bio">{{ c.bio }}</div>
+        {% endif %}
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+  {% else %}
+  <div class="card-body empty-state" style="padding:2rem;">
+    <p>ยังไม่มีผู้สมัครในวาระนี้</p>
+  </div>
+  {% endif %}
+</div>
+{% else %}
+<div class="empty-state">
+  <div class="empty-icon">👥</div>
+  <h2 style="font-size:1.1rem;">ยังไม่มีผู้สมัคร</h2>
+  <p>ยังไม่มีผู้สมัครในระบบ</p>
+</div>
+{% endfor %}
+{% endblock %}

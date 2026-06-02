@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% block title %}ผู้ลงคะแนน — {{ election.title }}{% endblock %}
+
+{% block content %}
+<div class="d-flex align-center justify-between flex-wrap gap-2 mb-3">
+  <div>
+    <a href="{{ url_for('admin.elections') }}" class="btn btn-ghost btn-sm mb-1">← จัดการวาระ</a>
+    <h1>ผู้ลงคะแนน — {{ election.title }}</h1>
+    <p class="text-muted">{{ voters | length }} คนที่ลงคะแนนแล้ว</p>
+  </div>
+  <a href="{{ url_for('admin.export_voters', election_id=election.id) }}" class="btn btn-primary">
+    ⬇ Export Excel
+  </a>
+</div>
+
+<div class="card">
+  {% if voters %}
+  <div class="table-wrap">
+    <table class="table">
+      <thead>
+        <tr>
+          <th>ลำดับ</th>
+          <th>ชื่อ-นามสกุล</th>
+          <th>ชื่อผู้ใช้</th>
+          <th>เวลาที่ลงคะแนน</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for v in voters %}
+        <tr>
+          <td style="color:var(--text-muted);">{{ loop.index }}</td>
+          <td style="font-weight:600;">{{ v.full_name }}</td>
+          <td style="color:var(--text-muted); font-size:.88rem;">{{ v.username }}</td>
+          <td style="font-size:.88rem;">{{ v.voted_at.strftime('%d/%m/%Y %H:%M:%S') }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="card-body empty-state">
+    <div class="empty-icon">🗳️</div>
+    <p>ยังไม่มีผู้ลงคะแนนในวาระนี้</p>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

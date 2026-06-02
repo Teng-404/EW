@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ยืนยัน OTP — Election Web</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}" />
+</head>
+<body>
+<div class="auth-page">
+  <div class="auth-card">
+    <div class="auth-logo">
+      <svg width="48" height="48" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <rect width="24" height="24" rx="6" fill="#1F3A5F"/>
+        <path d="M12 2C6.477 2 2 6.477 2 12s4.477 10 10 10 10-4.477 10-10S17.523 2 12 2zm0 5a1 1 0 110 2 1 1 0 010-2zm1 9h-2v-6h2v6z" fill="#fff"/>
+      </svg>
+      <h1>ยืนยัน OTP</h1>
+      <p>กรอกรหัส 6 หลักที่ส่งไปยังอีเมลของคุณ</p>
+    </div>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% for category, message in messages %}
+        <div class="flash {{ category }}" style="margin-bottom:1rem;" role="alert">
+          <span class="flash-body">{{ message }}</span>
+        </div>
+      {% endfor %}
+    {% endwith %}
+
+    <form method="POST">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+
+      <div class="form-group">
+        <label for="otp_code">รหัส OTP <span class="required">*</span></label>
+        <input type="text" id="otp_code" name="otp_code" class="form-control"
+               required autofocus inputmode="numeric" pattern="[0-9]{6}"
+               maxlength="6" placeholder="000000"
+               style="font-size:1.5rem; letter-spacing:.4rem; text-align:center; font-weight:700;" />
+        <div class="form-hint">รหัสจะหมดอายุภายใน 5 นาที</div>
+      </div>
+
+      <button type="submit" class="btn btn-primary btn-lg btn-block">ยืนยัน OTP</button>
+    </form>
+
+    <div style="text-align:center; margin-top:1.25rem;">
+      <a href="{{ url_for('auth.request_otp', election_id=election_id) }}"
+         style="font-size:.88rem; color:var(--text-muted);">
+        ส่งรหัสใหม่อีกครั้ง
+      </a>
+    </div>
+
+    {# Countdown #}
+    <div style="text-align:center; margin-top:.75rem; font-size:.8rem; color:var(--text-muted);">
+      รหัสหมดอายุใน <span id="countdown" style="font-weight:700; color:var(--danger);">5:00</span>
+    </div>
+  </div>
+</div>
+
+<script>
+// Auto-format OTP input (digits only)
+document.getElementById('otp_code').addEventListener('input', function() {
+  this.value = this.value.replace(/\D/g, '').slice(0, 6);
+});
+
+// Countdown 5 min
+let secs = 5 * 60;
+const cd  = document.getElementById('countdown');
+const timer = setInterval(() => {
+  secs--;
+  const m = Math.floor(secs / 60);
+  const s = secs % 60;
+  cd.textContent = `${m}:${s.toString().padStart(2,'0')}`;
+  if (secs <= 0) {
+    clearInterval(timer);
+    cd.textContent = 'หมดอายุแล้ว';
+  }
+}, 1000);
+</script>
+</body>
+</html>
