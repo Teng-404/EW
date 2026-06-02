@@ -19,7 +19,7 @@ class User(UserMixin):
         self.email     = row["email"]
         self.full_name = row["full_name"]
         self.role      = row["role"]
-        self.is_active = bool(row["is_active"])
+        self._is_active = bool(row["is_active"])
         self._password = row["password"]       # bcrypt hash (private)
 
     # ── Flask-Login required ───────────────────────────────
@@ -29,6 +29,10 @@ class User(UserMixin):
     @property
     def is_admin(self) -> bool:
         return self.role == "admin"
+    
+    @property
+    def is_active(self) -> bool:
+        return self._is_active
 
     # ── Password ───────────────────────────────────────────
     def check_password(self, plain: str) -> bool:
