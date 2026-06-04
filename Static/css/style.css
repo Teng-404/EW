@@ -570,8 +570,8 @@ textarea.form-control { resize: vertical; min-height: 80px; }
 
 .check-overlay {
   position: absolute;
-  top: 12px; right: 12px;
-  width: 20px; height: 20px;
+  top: 8px; right: 8px;
+  width: 24px; height: 24px;
   border-radius: 50%;
   background: var(--navy-mid);
   display: flex;
@@ -580,6 +580,7 @@ textarea.form-control { resize: vertical; min-height: 80px; }
   opacity: 0;
   transform: scale(.6);
   transition: opacity var(--t), transform var(--t);
+  z-index: 2;
 }
 .candidate-card.selected .check-overlay {
   opacity: 1;
@@ -593,7 +594,50 @@ textarea.form-control { resize: vertical; min-height: 80px; }
 
 .candidate-name  { font-size: 13px; font-weight: 600; color: var(--text-1); }
 .candidate-party { font-size: 11px; color: var(--sky); font-weight: 500; margin-top: 3px; }
-.candidate-bio   { font-size: 11px; color: var(--text-3); margin-top: 8px; line-height: 1.55; }
+.candidate-bio   { font-size: 11px; color: var(--text-3); margin-top: 8px; line-height: 1.55;
+                   display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+
+/* ── Candidate photo ──────────────────────────────────────── */
+.cand-photo-wrap {
+  position: relative;
+  padding-top: 72%;
+  background: var(--sky-light);
+  overflow: hidden;
+}
+.cand-photo-wrap img {
+  position: absolute;
+  inset: 0;
+  width: 100%; height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.cand-photo-placeholder {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #EBF0F8;
+}
+.cand-photo-placeholder svg {
+  width: 44px; height: 44px;
+  fill: none; stroke: #9ab3d9;
+  stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round;
+}
+.cand-num-badge {
+  position: absolute;
+  top: 8px; left: 8px;
+  width: 26px; height: 26px;
+  border-radius: 50%;
+  background: var(--navy-mid);
+  color: #fff;
+  font-weight: 700; font-size: 11px;
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 1px 4px rgba(0,0,0,.25);
+}
+.cand-body {
+  padding: 12px 13px 14px;
+}
 
 /* ── Selected info bar ────────────────────────────────────── */
 .selected-bar {

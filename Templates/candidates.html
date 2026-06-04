@@ -33,17 +33,31 @@
   <div class="card-body">
     <div class="grid-3">
       {% for c in candidates %}
-      <div style="border:1px solid var(--border); border-radius:var(--radius-lg); padding:14px; background:var(--card);">
-        <div style="display:flex; align-items:center; gap:10px; margin-bottom:10px;">
-          <div class="candidate-number" style="margin:0; flex-shrink:0;">{{ c.number or loop.index }}</div>
-          <div>
-            <div class="candidate-name">{{ c.name }}</div>
-            {% if c.party %}<div class="candidate-party">{{ c.party }}</div>{% endif %}
-          </div>
+      <div style="border:1px solid var(--border); border-radius:var(--radius-lg); overflow:hidden; background:var(--card);">
+
+        {# Photo #}
+        <div class="cand-photo-wrap" style="cursor:default;">
+          {% if c.photo_url %}
+            <img src="{{ c.photo_url }}" alt="{{ c.name }}"
+                 onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';" />
+            <div class="cand-photo-placeholder" style="display:none;">
+              <svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+            </div>
+          {% else %}
+            <div class="cand-photo-placeholder">
+              <svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+            </div>
+          {% endif %}
+          <div class="cand-num-badge">{{ c.number or loop.index }}</div>
         </div>
-        {% if c.bio %}
-          <div class="candidate-bio">{{ c.bio }}</div>
-        {% endif %}
+
+        {# Info #}
+        <div class="cand-body">
+          <div class="candidate-name">{{ c.name }}</div>
+          {% if c.party %}<div class="candidate-party">{{ c.party }}</div>{% endif %}
+          {% if c.bio %}<div class="candidate-bio" style="-webkit-line-clamp:unset; overflow:visible;">{{ c.bio }}</div>{% endif %}
+        </div>
+
       </div>
       {% endfor %}
     </div>
