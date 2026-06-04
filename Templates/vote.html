@@ -2,44 +2,56 @@
 {% block title %}ลงคะแนน — {{ election.title }}{% endblock %}
 
 {% block content %}
-<div class="mb-3" style="max-width:720px; margin:0 auto;">
-  <a href="{{ url_for('vote.index') }}" class="btn btn-ghost btn-sm mb-2">← กลับหน้าแรก</a>
-  <h1>{{ election.title }}</h1>
-  <p class="text-muted">เลือกผู้สมัครที่ต้องการ แล้วกด "ยืนยันการลงคะแนน"</p>
-  <p style="font-size:.82rem; color:var(--danger); font-weight:600; margin-top:.3rem;">
-    ⚠ การลงคะแนนไม่สามารถเปลี่ยนแปลงได้ภายหลัง
-  </p>
+<div style="max-width:760px; margin:0 auto;">
+  <a href="{{ url_for('vote.index') }}" class="btn btn-ghost btn-sm mb-2"
+     style="padding-left:6px;">
+    <svg style="width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round" viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
+    กลับหน้าแรก
+  </a>
+
+  <h1 style="margin-bottom:4px;">{{ election.title }}</h1>
+  <p style="font-size:13px; color:var(--text-3); margin-bottom:16px;">เลือกผู้สมัครที่ต้องการ แล้วกดยืนยัน</p>
+
+  <div class="flash info mb-2" role="alert" style="margin-bottom:14px;">
+    <svg class="flash-icon" viewBox="0 0 24 24">
+      <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+    </svg>
+    <span class="flash-body">การลงคะแนนไม่สามารถเปลี่ยนแปลงได้ภายหลัง</span>
+  </div>
 </div>
 
-<form method="POST" id="voteForm" style="max-width:720px; margin:0 auto;">
+<form method="POST" id="voteForm" style="max-width:760px; margin:0 auto;">
   <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
 
   {% if candidates %}
-    <div class="grid-2 mb-3" id="candidateGrid">
+    <div class="grid-3 mb-3" id="candidateGrid" style="margin-bottom:14px;">
       {% for c in candidates %}
       <label class="candidate-card" id="card-{{ c.id }}">
         <input type="radio" name="candidate_id" value="{{ c.id }}" required
                onchange="selectCard({{ c.id }})" />
+        <div class="check-overlay">
+          <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+        </div>
         <div class="candidate-number">{{ c.number or loop.index }}</div>
         <div class="candidate-name">{{ c.name }}</div>
         {% if c.party %}
           <div class="candidate-party">{{ c.party }}</div>
         {% endif %}
         {% if c.bio %}
-          <div class="candidate-bio">{{ c.bio | truncate(120) }}</div>
+          <div class="candidate-bio">{{ c.bio | truncate(110) }}</div>
         {% endif %}
       </label>
       {% endfor %}
     </div>
 
-    {# Selected summary #}
-    <div id="selectedInfo" style="display:none; background:var(--bg); border:1.5px solid var(--accent);
-         border-radius:var(--radius); padding:.85rem 1.1rem; margin-bottom:1.25rem; font-size:.9rem;">
-      คุณเลือก: <strong id="selectedName"></strong>
+    <div class="selected-bar" id="selectedBar">
+      <span>เลือก: <strong id="selectedName" style="color:var(--navy-mid);"></strong></span>
+      <button type="submit" class="btn btn-primary btn-sm" id="submitBtn">ยืนยันการลงคะแนน →</button>
     </div>
 
-    <button type="submit" class="btn btn-primary btn-lg btn-block" id="submitBtn" disabled>
-      ยืนยันการลงคะแนน
+    <button type="submit" class="btn btn-primary btn-lg btn-block" id="submitBtnMain" disabled
+            style="display:none;">
+      ยืนยันการลงคะแนน →
     </button>
 
   {% else %}
@@ -50,18 +62,17 @@
   {% endif %}
 </form>
 
-{# Confirm modal #}
-<div id="confirmOverlay" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,.5);
-     z-index:300; align-items:center; justify-content:center;">
-  <div class="card" style="max-width:380px; width:90%; padding:1.75rem;">
-    <h2 style="margin-bottom:.75rem;">ยืนยันการลงคะแนน?</h2>
-    <p style="color:var(--text-muted); font-size:.9rem; margin-bottom:1.25rem;">
-      คุณกำลังจะลงคะแนนให้ <strong id="confirmName"></strong><br/>
-      การลงคะแนนไม่สามารถเปลี่ยนแปลงได้
-    </p>
-    <div style="display:flex; gap:.75rem;">
-      <button onclick="closeConfirm()" class="btn btn-ghost btn-block">ยกเลิก</button>
-      <button onclick="submitVote()" class="btn btn-primary btn-block">ยืนยัน ✓</button>
+{# Confirm Modal #}
+<div class="confirm-overlay" id="confirmOverlay">
+  <div class="confirm-modal">
+    <div class="confirm-modal-icon">
+      <svg viewBox="0 0 24 24"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>
+    </div>
+    <h2>ยืนยันการลงคะแนน?</h2>
+    <p>คุณกำลังจะลงคะแนนให้ <strong id="confirmName" style="color:var(--text-1);"></strong><br/>การลงคะแนนไม่สามารถเปลี่ยนแปลงได้</p>
+    <div class="btn-row">
+      <button onclick="closeConfirm()" class="btn btn-outline">ยกเลิก</button>
+      <button onclick="submitVote()"   class="btn btn-primary">ยืนยัน ✓</button>
     </div>
   </div>
 </div>
@@ -78,9 +89,9 @@ const candidateNames = {
 function selectCard(id) {
   document.querySelectorAll('.candidate-card').forEach(c => c.classList.remove('selected'));
   document.getElementById('card-' + id).classList.add('selected');
+  const bar = document.getElementById('selectedBar');
   document.getElementById('selectedName').textContent = candidateNames[id];
-  document.getElementById('selectedInfo').style.display = 'block';
-  document.getElementById('submitBtn').disabled = false;
+  bar.classList.add('show');
 }
 
 document.getElementById('voteForm').addEventListener('submit', function(e) {
@@ -88,11 +99,11 @@ document.getElementById('voteForm').addEventListener('submit', function(e) {
   const radio = document.querySelector('input[name="candidate_id"]:checked');
   if (!radio) return;
   document.getElementById('confirmName').textContent = candidateNames[radio.value];
-  document.getElementById('confirmOverlay').style.display = 'flex';
+  document.getElementById('confirmOverlay').classList.add('show');
 });
 
 function closeConfirm() {
-  document.getElementById('confirmOverlay').style.display = 'none';
+  document.getElementById('confirmOverlay').classList.remove('show');
 }
 
 function submitVote() {

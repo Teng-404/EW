@@ -5,75 +5,122 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>ยืนยัน OTP — Election Web</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@300;400;500;600&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}" />
 </head>
 <body>
 <div class="auth-page">
   <div class="auth-card">
-    <div class="auth-logo">
-      <svg width="48" height="48" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <rect width="24" height="24" rx="6" fill="#1F3A5F"/>
-        <path d="M12 2C6.477 2 2 6.477 2 12s4.477 10 10 10 10-4.477 10-10S17.523 2 12 2zm0 5a1 1 0 110 2 1 1 0 010-2zm1 9h-2v-6h2v6z" fill="#fff"/>
+
+    <div class="auth-icon gold">
+      <svg viewBox="0 0 24 24">
+        <path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013 8.79a2 2 0 012-2.18h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L9.91 14a16 16 0 006 6l.34-.34a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 16.92z"/>
       </svg>
-      <h1>ยืนยัน OTP</h1>
-      <p>กรอกรหัส 6 หลักที่ส่งไปยังอีเมลของคุณ</p>
     </div>
+    <div class="auth-title">ยืนยัน OTP</div>
+    <div class="auth-sub">กรอกรหัส 6 หลักที่ส่งไปยังอีเมลของคุณ</div>
 
     {% with messages = get_flashed_messages(with_categories=true) %}
       {% for category, message in messages %}
-        <div class="flash {{ category }}" style="margin-bottom:1rem;" role="alert">
+        <div class="flash {{ category }}" style="margin-bottom:12px;" role="alert">
+          <svg class="flash-icon" viewBox="0 0 24 24">
+            {% if category == 'success' %}<polyline points="20 6 9 17 4 12"/>
+            {% elif category == 'danger' %}<circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/>
+            {% else %}<circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+            {% endif %}
+          </svg>
           <span class="flash-body">{{ message }}</span>
         </div>
       {% endfor %}
     {% endwith %}
 
-    <form method="POST">
+    <form method="POST" id="otpForm">
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+      <input type="hidden" name="otp_code"  id="otpHidden" />
 
-      <div class="form-group">
-        <label for="otp_code">รหัส OTP <span class="required">*</span></label>
-        <input type="text" id="otp_code" name="otp_code" class="form-control"
-               required autofocus inputmode="numeric" pattern="[0-9]{6}"
-               maxlength="6" placeholder="000000"
-               style="font-size:1.5rem; letter-spacing:.4rem; text-align:center; font-weight:700;" />
-        <div class="form-hint">รหัสจะหมดอายุภายใน 5 นาที</div>
+      {# Digit boxes #}
+      <div class="otp-wrap" id="otpBoxes">
+        <input class="otp-digit" type="text" inputmode="numeric" maxlength="1" pattern="[0-9]" autocomplete="off" />
+        <input class="otp-digit" type="text" inputmode="numeric" maxlength="1" pattern="[0-9]" autocomplete="off" />
+        <input class="otp-digit" type="text" inputmode="numeric" maxlength="1" pattern="[0-9]" autocomplete="off" />
+        <input class="otp-digit" type="text" inputmode="numeric" maxlength="1" pattern="[0-9]" autocomplete="off" />
+        <input class="otp-digit" type="text" inputmode="numeric" maxlength="1" pattern="[0-9]" autocomplete="off" />
+        <input class="otp-digit" type="text" inputmode="numeric" maxlength="1" pattern="[0-9]" autocomplete="off" />
       </div>
 
-      <button type="submit" class="btn btn-primary btn-lg btn-block">ยืนยัน OTP</button>
+      <div class="countdown" id="countdown">
+        รหัสหมดอายุใน <strong id="countdownTimer">5:00</strong>
+      </div>
+
+      <button type="submit" class="btn btn-primary btn-lg btn-block" id="submitBtn" disabled>
+        ยืนยัน OTP
+      </button>
     </form>
 
-    <div style="text-align:center; margin-top:1.25rem;">
-      <a href="{{ url_for('auth.request_otp', election_id=election_id) }}"
-         style="font-size:.88rem; color:var(--text-muted);">
-        ส่งรหัสใหม่อีกครั้ง
-      </a>
-    </div>
+    <p style="text-align:center; margin-top:16px; font-size:12px; color:var(--text-3);">
+      <a href="{{ url_for('auth.request_otp', election_id=election_id) }}">ส่งรหัสใหม่อีกครั้ง</a>
+    </p>
 
-    {# Countdown #}
-    <div style="text-align:center; margin-top:.75rem; font-size:.8rem; color:var(--text-muted);">
-      รหัสหมดอายุใน <span id="countdown" style="font-weight:700; color:var(--danger);">5:00</span>
-    </div>
   </div>
 </div>
 
 <script>
-// Auto-format OTP input (digits only)
-document.getElementById('otp_code').addEventListener('input', function() {
-  this.value = this.value.replace(/\D/g, '').slice(0, 6);
+const digits  = Array.from(document.querySelectorAll('.otp-digit'));
+const hidden  = document.getElementById('otpHidden');
+const btn     = document.getElementById('submitBtn');
+const timerEl = document.getElementById('countdownTimer');
+
+// Focus first
+digits[0].focus();
+
+digits.forEach((el, i) => {
+  el.addEventListener('input', () => {
+    el.value = el.value.replace(/\D/g, '');
+    if (el.value && i < 5) digits[i + 1].focus();
+    syncValue();
+  });
+  el.addEventListener('keydown', e => {
+    if (e.key === 'Backspace' && !el.value && i > 0) {
+      digits[i - 1].value = '';
+      digits[i - 1].focus();
+      syncValue();
+    }
+    if (e.key === 'ArrowLeft'  && i > 0) digits[i - 1].focus();
+    if (e.key === 'ArrowRight' && i < 5) digits[i + 1].focus();
+  });
+  el.addEventListener('paste', e => {
+    e.preventDefault();
+    const text = (e.clipboardData || window.clipboardData).getData('text').replace(/\D/g, '').slice(0, 6);
+    text.split('').forEach((ch, j) => { if (digits[j]) digits[j].value = ch; });
+    const next = Math.min(text.length, 5);
+    digits[next].focus();
+    syncValue();
+  });
+  el.addEventListener('focus', () => el.select());
 });
 
-// Countdown 5 min
+function syncValue() {
+  const val = digits.map(d => d.value).join('');
+  hidden.value = val;
+  digits.forEach((d, i) => {
+    d.classList.toggle('filled', !!d.value);
+  });
+  btn.disabled = val.length < 6;
+}
+
+// Countdown
 let secs = 5 * 60;
-const cd  = document.getElementById('countdown');
 const timer = setInterval(() => {
   secs--;
   const m = Math.floor(secs / 60);
   const s = secs % 60;
-  cd.textContent = `${m}:${s.toString().padStart(2,'0')}`;
+  timerEl.textContent = `${m}:${s.toString().padStart(2, '0')}`;
   if (secs <= 0) {
     clearInterval(timer);
-    cd.textContent = 'หมดอายุแล้ว';
+    timerEl.textContent = 'หมดอายุแล้ว';
+    timerEl.style.color = 'var(--red)';
+    btn.disabled = true;
   }
 }, 1000);
 </script>

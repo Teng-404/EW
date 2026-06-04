@@ -5,7 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>{% block title %}Election Web{% endblock %}</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@300;400;500;600&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}" />
   {% block head %}{% endblock %}
 </head>
@@ -16,31 +17,29 @@
     <div class="container">
       <a href="{{ url_for('vote.index') }}" class="navbar-brand">
         <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-          <path d="M9 11l3 3L22 4M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/>
+          <polyline points="9 11 12 14 22 4"/>
+          <path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/>
         </svg>
         Election Web
       </a>
 
       <ul class="navbar-nav">
-        <li><a href="{{ url_for('vote.index') }}"        class="nav-link"><span>หน้าแรก</span></a></li>
-        <li><a href="{{ url_for('candidates.list_all') }}" class="nav-link"><span>ผู้สมัคร</span></a></li>
+        <li><a href="{{ url_for('vote.index') }}"          class="nav-link">หน้าแรก</a></li>
+        <li><a href="{{ url_for('candidates.list_all') }}" class="nav-link">ผู้สมัคร</a></li>
 
         {% if current_user.is_authenticated %}
           {% if current_user.is_admin %}
-            <li><a href="{{ url_for('admin.dashboard') }}" class="nav-link">
-              <span>Admin</span>
-              <span class="nav-badge">A</span>
-            </a></li>
+            <li>
+              <a href="{{ url_for('admin.dashboard') }}" class="nav-link">
+                Admin <span class="nav-badge">A</span>
+              </a>
+            </li>
           {% endif %}
-          <li><a href="{{ url_for('auth.logout') }}" class="nav-link"><span>ออกจากระบบ</span></a></li>
-          <li>
-            <span class="nav-link" style="color:rgba(255,255,255,.6);cursor:default;font-size:.8rem;">
-              {{ current_user.full_name.split()[0] }}
-            </span>
-          </li>
+          <li><a href="{{ url_for('auth.logout') }}" class="nav-link">ออกจากระบบ</a></li>
+          <li><span class="nav-user">{{ current_user.full_name.split()[0] }}</span></li>
         {% else %}
-          <li><a href="{{ url_for('auth.login') }}"    class="nav-link"><span>เข้าสู่ระบบ</span></a></li>
-          <li><a href="{{ url_for('auth.register') }}" class="nav-link"><span>สมัคร</span></a></li>
+          <li><a href="{{ url_for('auth.login') }}"    class="nav-link">เข้าสู่ระบบ</a></li>
+          <li><a href="{{ url_for('auth.register') }}" class="nav-link">สมัครสมาชิก</a></li>
         {% endif %}
       </ul>
     </div>
@@ -51,13 +50,17 @@
     {% with messages = get_flashed_messages(with_categories=true) %}
       {% for category, message in messages %}
         <div class="flash {{ category }}" role="alert">
-          <span class="flash-icon">
-            {% if category == 'success' %}✓
-            {% elif category == 'danger'  %}✕
-            {% elif category == 'warning' %}⚠
-            {% else %}ℹ
+          <svg class="flash-icon" viewBox="0 0 24 24">
+            {% if category == 'success' %}
+              <polyline points="20 6 9 17 4 12"/>
+            {% elif category == 'danger' %}
+              <circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/>
+            {% elif category == 'warning' %}
+              <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+            {% else %}
+              <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
             {% endif %}
-          </span>
+          </svg>
           <span class="flash-body">{{ message }}</span>
           <button class="flash-close" onclick="this.parentElement.remove()" aria-label="ปิด">✕</button>
         </div>
@@ -74,11 +77,11 @@
 
   {# ── Scripts ── #}
   <script>
-    // Auto-dismiss flash after 5s
     setTimeout(() => {
       document.querySelectorAll('.flash').forEach(el => {
-        el.style.transition = 'opacity .4s';
+        el.style.transition = 'opacity .4s, transform .4s';
         el.style.opacity = '0';
+        el.style.transform = 'translateX(20px)';
         setTimeout(() => el.remove(), 400);
       });
     }, 5000);

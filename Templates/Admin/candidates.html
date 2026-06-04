@@ -3,18 +3,23 @@
 
 {% block content %}
 <div class="mb-3">
-  <a href="{{ url_for('admin.elections') }}" class="btn btn-ghost btn-sm mb-1">← จัดการวาระ</a>
+  <a href="{{ url_for('admin.elections') }}" class="btn btn-ghost btn-sm mb-1" style="padding-left:6px;">
+    <svg style="width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round" viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
+    จัดการวาระ
+  </a>
   <h1>{{ election.title }}</h1>
-  <p class="text-muted">จัดการผู้สมัครในวาระนี้</p>
+  <p style="font-size:13px; color:var(--text-3); margin-top:4px;">จัดการผู้สมัครในวาระนี้</p>
 </div>
 
 {# ── Add Candidate ── #}
 <div class="card mb-3">
-  <div class="card-header"><h2 style="font-size:1rem;">เพิ่มผู้สมัคร</h2></div>
+  <div class="card-header">
+    <span style="font-size:13px; font-weight:500;">เพิ่มผู้สมัคร</span>
+  </div>
   <div class="card-body">
     <form method="POST" action="{{ url_for('admin.add_candidate', election_id=election.id) }}">
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
-      <div style="display:grid; grid-template-columns:80px 1fr 1fr; gap:1rem; align-items:end;">
+      <div style="display:grid; grid-template-columns:80px 1fr 1fr; gap:12px; margin-bottom:12px;">
         <div class="form-group" style="margin:0;">
           <label for="number">หมายเลข</label>
           <input type="number" id="number" name="number" class="form-control" min="1" placeholder="1" />
@@ -28,15 +33,16 @@
           <input type="text" id="party" name="party" class="form-control" placeholder="ชื่อพรรคหรือกลุ่ม" />
         </div>
       </div>
-      <div class="form-group mt-2" style="margin-bottom:.75rem;">
+      <div class="form-group">
         <label for="bio">นโยบาย/ประวัติ</label>
-        <textarea id="bio" name="bio" class="form-control" rows="2" placeholder="รายละเอียดผู้สมัคร นโยบาย ประวัติ ฯลฯ"></textarea>
+        <textarea id="bio" name="bio" class="form-control" rows="2"
+                  placeholder="รายละเอียด นโยบาย ประวัติ ฯลฯ"></textarea>
       </div>
       <div class="form-group" style="margin-bottom:0;">
         <label for="photo_url">URL รูปภาพ</label>
         <input type="url" id="photo_url" name="photo_url" class="form-control" placeholder="https://..." />
       </div>
-      <button type="submit" class="btn btn-primary mt-2">+ เพิ่มผู้สมัคร</button>
+      <button type="submit" class="btn btn-primary btn-sm mt-2" style="margin-top:14px;">+ เพิ่มผู้สมัคร</button>
     </form>
   </div>
 </div>
@@ -44,7 +50,7 @@
 {# ── Candidates List ── #}
 <div class="card">
   <div class="card-header">
-    <h2 style="font-size:1rem;">ผู้สมัครทั้งหมด ({{ candidates | length }})</h2>
+    <span style="font-size:13px; font-weight:500;">ผู้สมัครทั้งหมด ({{ candidates | length }})</span>
     {% if candidates %}
     <a href="{{ url_for('admin.export_results', election_id=election.id) }}" class="btn btn-ghost btn-sm">⬇ Excel ผลคะแนน</a>
     {% endif %}
@@ -65,19 +71,15 @@
       <tbody>
         {% for c in candidates %}
         <tr id="row-{{ c.id }}">
-          <td style="font-weight:700;">{{ c.number or '—' }}</td>
-          <td style="font-weight:600;">{{ c.name }}</td>
-          <td style="color:var(--accent);">{{ c.party or '—' }}</td>
-          <td style="font-size:.82rem; color:var(--text-muted); max-width:200px;">
-            {{ c.bio | truncate(60) if c.bio else '—' }}
-          </td>
+          <td style="font-weight:600; color:var(--navy-mid);">{{ c.number or '—' }}</td>
+          <td style="font-weight:500;">{{ c.name }}</td>
+          <td style="font-size:12px; color:var(--sky);">{{ c.party or '—' }}</td>
+          <td style="font-size:11px; color:var(--text-3); max-width:200px;">{{ c.bio | truncate(60) if c.bio else '—' }}</td>
           <td>
-            <div style="display:flex; gap:.4rem;">
-              {# Edit button → show inline form #}
+            <div style="display:flex; gap:6px;">
               <button onclick="toggleEdit({{ c.id }})" class="btn btn-outline btn-sm">แก้ไข</button>
-
-              <form method="POST" action="{{ url_for('admin.delete_candidate', candidate_id=c.id) }}"
-                    style="display:inline;" onsubmit="return confirm('ลบผู้สมัคร {{ c.name }}?')">
+              <form method="POST" action="{{ url_for('admin.delete_candidate', candidate_id=c.id) }}" style="display:inline;"
+                    onsubmit="return confirm('ลบผู้สมัคร {{ c.name }}?')">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
                 <button type="submit" class="btn btn-danger btn-sm">ลบ</button>
               </form>
@@ -85,30 +87,30 @@
           </td>
         </tr>
 
-        {# Inline Edit Row #}
-        <tr id="edit-{{ c.id }}" style="display:none; background:var(--bg);">
-          <td colspan="5" style="padding:1rem;">
+        {# Inline edit row #}
+        <tr id="edit-{{ c.id }}" style="display:none; background:var(--sky-light);">
+          <td colspan="5" style="padding:14px 16px;">
             <form method="POST" action="{{ url_for('admin.edit_candidate', candidate_id=c.id) }}">
               <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
-              <div style="display:grid; grid-template-columns:80px 1fr 1fr; gap:.75rem; margin-bottom:.75rem;">
+              <div style="display:grid; grid-template-columns:80px 1fr 1fr; gap:10px; margin-bottom:10px;">
                 <div>
-                  <label style="font-size:.8rem;">หมายเลข</label>
+                  <label style="font-size:11px;">หมายเลข</label>
                   <input type="number" name="number" class="form-control" value="{{ c.number or '' }}" />
                 </div>
                 <div>
-                  <label style="font-size:.8rem;">ชื่อ <span class="required">*</span></label>
+                  <label style="font-size:11px;">ชื่อ <span class="required">*</span></label>
                   <input type="text" name="name" class="form-control" value="{{ c.name }}" required />
                 </div>
                 <div>
-                  <label style="font-size:.8rem;">พรรค/กลุ่ม</label>
+                  <label style="font-size:11px;">พรรค/กลุ่ม</label>
                   <input type="text" name="party" class="form-control" value="{{ c.party or '' }}" />
                 </div>
               </div>
-              <div style="margin-bottom:.75rem;">
-                <label style="font-size:.8rem;">นโยบาย/ประวัติ</label>
+              <div style="margin-bottom:12px;">
+                <label style="font-size:11px;">นโยบาย/ประวัติ</label>
                 <textarea name="bio" class="form-control" rows="2">{{ c.bio or '' }}</textarea>
               </div>
-              <div style="display:flex; gap:.5rem;">
+              <div style="display:flex; gap:8px;">
                 <button type="submit" class="btn btn-primary btn-sm">บันทึก</button>
                 <button type="button" onclick="toggleEdit({{ c.id }})" class="btn btn-ghost btn-sm">ยกเลิก</button>
               </div>
@@ -121,7 +123,7 @@
   </div>
   {% else %}
   <div class="card-body empty-state">
-    <p>ยังไม่มีผู้สมัคร — เพิ่มผู้สมัครด้านบน</p>
+    <p>ยังไม่มีผู้สมัคร — เพิ่มด้านบน</p>
   </div>
   {% endif %}
 </div>

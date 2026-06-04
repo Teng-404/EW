@@ -4,20 +4,22 @@
 {% block content %}
 <div class="d-flex align-center justify-between flex-wrap gap-2 mb-3">
   <div>
-    <a href="{{ url_for('admin.dashboard') }}" class="btn btn-ghost btn-sm mb-1">← Dashboard</a>
+    <a href="{{ url_for('admin.dashboard') }}" class="btn btn-ghost btn-sm mb-1" style="padding-left:6px;">
+      <svg style="width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round" viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
+      Dashboard
+    </a>
     <h1>จัดการผู้ใช้</h1>
-    <p class="text-muted">{{ users | length }} บัญชีในระบบ</p>
+    <p style="font-size:13px; color:var(--text-3); margin-top:4px;">{{ users | length }} บัญชีในระบบ</p>
   </div>
 </div>
 
 <div class="card">
   <div class="card-header">
-    <h2 style="font-size:1rem;">รายชื่อผู้ใช้ทั้งหมด</h2>
+    <span style="font-size:13px; font-weight:500;">รายชื่อผู้ใช้ทั้งหมด</span>
     <input type="text" id="searchInput" class="form-control"
-           style="max-width:220px; padding:.35rem .7rem; font-size:.85rem;"
-           placeholder="ค้นหาชื่อ / username..." oninput="filterTable()" />
+           style="max-width:200px; font-size:12px; padding:6px 10px;"
+           placeholder="ค้นหาชื่อ / username…" oninput="filterTable()" />
   </div>
-
   <div class="table-wrap">
     <table class="table" id="usersTable">
       <thead>
@@ -28,47 +30,44 @@
           <th>Email</th>
           <th>โรล</th>
           <th>สถานะ</th>
-          <th>เปลี่ยนโรล</th>
+          <th>การดำเนินการ</th>
         </tr>
       </thead>
       <tbody>
         {% for u in users %}
         <tr>
-          <td style="color:var(--text-muted); font-size:.85rem;">{{ u.id }}</td>
-          <td style="font-weight:600;">{{ u.full_name }}</td>
-          <td style="color:var(--text-muted);">{{ u.username }}</td>
-          <td style="font-size:.85rem;">{{ u.email }}</td>
+          <td style="color:var(--text-3); font-size:11px;">{{ u.id }}</td>
+          <td style="font-weight:500;">{{ u.full_name }}</td>
+          <td style="color:var(--text-3); font-size:12px;">{{ u.username }}</td>
+          <td style="font-size:12px;">{{ u.email }}</td>
+          <td><span class="badge badge-{{ u.role }}">{{ u.role }}</span></td>
           <td>
-            <span class="badge badge-{{ u.role }}">{{ u.role }}</span>
-          </td>
-          <td>
-            <span style="color:{{ 'var(--success)' if u.is_active else 'var(--danger)' }}; font-size:.85rem; font-weight:600;">
+            <span style="font-size:12px; font-weight:500; color:{% if u.is_active %}var(--green){% else %}var(--red){% endif %}">
               {{ 'ใช้งานได้' if u.is_active else 'ถูกระงับ' }}
             </span>
           </td>
           <td>
             {% if u.id != current_user.id %}
-            <form method="POST" action="{{ url_for('admin.set_user_role', user_id=u.id) }}"
-                  style="display:inline;"
-                  onsubmit="return confirm('เปลี่ยนโรลของ {{ u.username }} เป็น {{ 'voter' if u.role == 'admin' else 'admin' }}?')">
-              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
-              <input type="hidden" name="role" value="{{ 'voter' if u.role == 'admin' else 'admin' }}" />
-              <button type="submit"
-                      class="btn btn-sm {{ 'btn-warning' if u.role == 'admin' else 'btn-primary' }}">
-                {{ '↓ ลด voter' if u.role == 'admin' else '↑ ตั้ง admin' }}
-              </button>
-            </form>
+            <div style="display:flex; gap:6px;">
+              <form method="POST" action="{{ url_for('admin.set_user_role', user_id=u.id) }}" style="display:inline;"
+                    onsubmit="return confirm('เปลี่ยนโรลของ {{ u.username }} เป็น {{ 'voter' if u.role == 'admin' else 'admin' }}?')">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+                <input type="hidden" name="role" value="{{ 'voter' if u.role == 'admin' else 'admin' }}" />
+                <button type="submit" class="btn btn-sm {% if u.role == 'admin' %}btn-warning{% else %}btn-outline{% endif %}">
+                  {{ '↓ voter' if u.role == 'admin' else '↑ admin' }}
+                </button>
+              </form>
 
-            <form method="POST" action="{{ url_for('admin.toggle_user_active', user_id=u.id) }}"
-                  style="display:inline; margin-left:.3rem;"
-                  onsubmit="return confirm('{{ 'ระงับ' if u.is_active else 'เปิดใช้' }} บัญชี {{ u.username }}?')">
-              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
-              <button type="submit" class="btn btn-sm {{ 'btn-danger' if u.is_active else 'btn-success' }}">
-                {{ 'ระงับ' if u.is_active else 'เปิดใช้' }}
-              </button>
-            </form>
+              <form method="POST" action="{{ url_for('admin.toggle_user_active', user_id=u.id) }}" style="display:inline;"
+                    onsubmit="return confirm('{{ 'ระงับ' if u.is_active else 'เปิดใช้' }} บัญชี {{ u.username }}?')">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+                <button type="submit" class="btn btn-sm {% if u.is_active %}btn-danger{% else %}btn-success{% endif %}">
+                  {{ 'ระงับ' if u.is_active else 'เปิดใช้' }}
+                </button>
+              </form>
+            </div>
             {% else %}
-            <span style="font-size:.8rem; color:var(--text-muted);">(บัญชีของคุณ)</span>
+            <span style="font-size:11px; color:var(--text-3);">(บัญชีของคุณ)</span>
             {% endif %}
           </td>
         </tr>

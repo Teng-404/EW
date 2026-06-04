@@ -5,43 +5,43 @@
 <div class="d-flex align-center justify-between flex-wrap gap-2 mb-3">
   <div>
     <h1>Admin Dashboard</h1>
-    <p class="text-muted">ภาพรวมการเลือกตั้งทั้งหมด</p>
+    <p style="font-size:13px; color:var(--text-3); margin-top:4px;">ภาพรวมการเลือกตั้งทั้งหมด</p>
   </div>
-  <a href="{{ url_for('admin.manage_users') }}" class="btn btn-outline">จัดการผู้ใช้</a>
-  <a href="{{ url_for('admin.elections') }}" class="btn btn-primary">+ จัดการวาระ</a>
+  <div style="display:flex; gap:8px;">
+    <a href="{{ url_for('admin.manage_users') }}" class="btn btn-outline btn-sm">จัดการผู้ใช้</a>
+    <a href="{{ url_for('admin.elections') }}"   class="btn btn-primary btn-sm">+ จัดการวาระ</a>
+  </div>
 </div>
 
-{# ── Summary ── #}
 <div class="grid-4 mb-3">
-  <div class="stat-card">
-    <span class="stat-label">วาระทั้งหมด</span>
-    <span class="stat-value">{{ stats | length }}</span>
+  <div class="stat-card" style="border-left-color:var(--navy-mid)">
+    <div class="stat-label">วาระทั้งหมด</div>
+    <div class="stat-value">{{ stats | length }}</div>
   </div>
-  <div class="stat-card">
-    <span class="stat-label">กำลังเปิด</span>
-    <span class="stat-value" style="color:var(--success);">
+  <div class="stat-card" style="border-left-color:var(--green)">
+    <div class="stat-label">กำลังเปิด</div>
+    <div class="stat-value" style="color:var(--green);">
       {{ stats | selectattr('election.status', 'eq', 'open') | list | length }}
-    </span>
+    </div>
   </div>
-  <div class="stat-card">
-    <span class="stat-label">คะแนนรวมทุกวาระ</span>
-    <span class="stat-value">{{ stats | sum(attribute='total_votes') }}</span>
+  <div class="stat-card" style="border-left-color:var(--sky)">
+    <div class="stat-label">คะแนนรวมทุกวาระ</div>
+    <div class="stat-value">{{ stats | sum(attribute='total_votes') }}</div>
   </div>
-  <div class="stat-card">
-    <span class="stat-label">ผู้สมัครรวม</span>
-    <span class="stat-value">{{ stats | sum(attribute='candidates') }}</span>
+  <div class="stat-card" style="border-left-color:var(--gold)">
+    <div class="stat-label">ผู้สมัครรวม</div>
+    <div class="stat-value">{{ stats | sum(attribute='candidates') }}</div>
   </div>
 </div>
 
-{# ── Election cards ── #}
 {% if stats %}
 <div class="grid-2">
   {% for s in stats %}
   <div class="card">
     <div class="card-header">
       <div>
-        <h2 style="font-size:1rem;">{{ s.election.title }}</h2>
-        <span class="badge badge-{{ s.election.status }} mt-1">
+        <div style="font-size:14px; font-weight:500; margin-bottom:6px;">{{ s.election.title }}</div>
+        <span class="badge badge-{{ s.election.status }}">
           <span class="status-dot {{ s.election.status }}"></span>
           {% if s.election.status == 'open' %}กำลังเปิด
           {% elif s.election.status == 'pending' %}รอดำเนินการ
@@ -49,28 +49,26 @@
         </span>
       </div>
     </div>
-
-    <div class="card-body" style="display:flex; gap:1.5rem;">
+    <div class="card-body" style="display:flex; gap:24px; align-items:center;">
       <div style="text-align:center;">
-        <div style="font-size:1.6rem; font-weight:700; color:var(--primary);">{{ s.total_votes }}</div>
-        <div style="font-size:.75rem; color:var(--text-muted);">คะแนน</div>
+        <div style="font-size:1.8rem; font-weight:300; color:var(--navy-mid); letter-spacing:-.03em; line-height:1;">{{ s.total_votes }}</div>
+        <div style="font-size:10px; color:var(--text-3); text-transform:uppercase; letter-spacing:.06em; margin-top:4px;">คะแนน</div>
       </div>
       <div style="text-align:center;">
-        <div style="font-size:1.6rem; font-weight:700; color:var(--accent);">{{ s.candidates }}</div>
-        <div style="font-size:.75rem; color:var(--text-muted);">ผู้สมัคร</div>
+        <div style="font-size:1.8rem; font-weight:300; color:var(--sky); letter-spacing:-.03em; line-height:1;">{{ s.candidates }}</div>
+        <div style="font-size:10px; color:var(--text-3); text-transform:uppercase; letter-spacing:.06em; margin-top:4px;">ผู้สมัคร</div>
       </div>
       {% if s.election.start_time %}
-      <div>
-        <div style="font-size:.75rem; color:var(--text-muted);">เริ่ม</div>
-        <div style="font-size:.85rem;">{{ s.election.start_time.strftime('%d/%m/%Y %H:%M') }}</div>
+      <div style="font-size:12px; color:var(--text-3);">
+        <div style="margin-bottom:2px;">เริ่ม {{ s.election.start_time.strftime('%d/%m/%Y %H:%M') }}</div>
+        {% if s.election.end_time %}<div>สิ้นสุด {{ s.election.end_time.strftime('%d/%m/%Y %H:%M') }}</div>{% endif %}
       </div>
       {% endif %}
     </div>
-
-    <div class="card-footer" style="display:flex; gap:.5rem; flex-wrap:wrap;">
+    <div class="card-footer">
       <a href="{{ url_for('admin.manage_candidates', election_id=s.election.id) }}" class="btn btn-outline btn-sm">จัดการผู้สมัคร</a>
-      <a href="{{ url_for('vote.results', election_id=s.election.id) }}" class="btn btn-ghost btn-sm">ดูผลคะแนน</a>
-      <a href="{{ url_for('admin.voters', election_id=s.election.id) }}" class="btn btn-ghost btn-sm">รายชื่อผู้ลงคะแนน</a>
+      <a href="{{ url_for('vote.results',            election_id=s.election.id) }}" class="btn btn-ghost btn-sm">ดูผลคะแนน</a>
+      <a href="{{ url_for('admin.voters',            election_id=s.election.id) }}" class="btn btn-ghost btn-sm">ผู้ลงคะแนน</a>
     </div>
   </div>
   {% endfor %}
@@ -78,7 +76,7 @@
 {% else %}
 <div class="empty-state">
   <div class="empty-icon">🗳️</div>
-  <h2 style="font-size:1.1rem;">ยังไม่มีวาระการเลือกตั้ง</h2>
+  <h2 style="font-size:15px; font-weight:500; color:var(--text-2); margin-bottom:6px;">ยังไม่มีวาระการเลือกตั้ง</h2>
   <a href="{{ url_for('admin.elections') }}" class="btn btn-primary mt-2">สร้างวาระแรก</a>
 </div>
 {% endif %}
