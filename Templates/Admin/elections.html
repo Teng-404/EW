@@ -98,7 +98,7 @@
 
               <a href="{{ url_for('admin.manage_candidates', election_id=e.id) }}" class="btn btn-outline btn-sm">ผู้สมัคร</a>
               <a href="{{ url_for('admin.voters',            election_id=e.id) }}" class="btn btn-ghost btn-sm">ผู้โหวต</a>
-              <a href="{{ url_for('admin.export_results',    election_id=e.id) }}" class="btn btn-ghost btn-sm" title="Export ผลคะแนน">⬇</a>
+              <a href="{{ url_for('admin.export_results',    election_id=e.id) }}" class="btn btn-outline btn-sm">⬇ Export</a>
 
               <form method="POST" action="{{ url_for('admin.delete_election', election_id=e.id) }}" style="display:inline;"
                     onsubmit="return confirm('ลบวาระนี้? จะลบผู้สมัครและคะแนนทั้งหมดด้วย')">
