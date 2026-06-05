@@ -13,6 +13,9 @@ POST /admin/candidates/<id>/delete        — ลบผู้สมัคร
 GET  /admin/elections/<id>/voters         — รายชื่อผู้ลงคะแนน
 GET  /admin/elections/<id>/voters/export  — export Excel ผู้ลงคะแนน
 GET  /admin/elections/<id>/results/export — export Excel ผลคะแนน
+GET  /admin/users                         — จัดการผู้ใช้
+POST /admin/users/<id>/role               — เปลี่ยน role
+POST /admin/users/<id>/toggle-active      — เปิด/ระงับบัญชี
 """
 
 import io
@@ -300,48 +303,48 @@ def export_results(election_id: int):
     )
 
 # ── Users Management ───────────────────────────────────────
- 
- 
+
+
 @admin_bp.route("/users")
 @admin_required
 def manage_users():
     from models.user import User
     users = User.get_all()
     return render_template("admin/users.html", users=users)
- 
+
 
 @admin_bp.route("/users/<int:user_id>/role", methods=["POST"])
 @admin_required
 def set_user_role(user_id: int):
     from models.user import User
-    user = User.get_by_id(user_id)
+    user = User.get_by_id_any(user_id)  # ใช้ get_by_id_any เพื่อให้ดึง inactive user ได้ด้วย
     if not user:
         abort(404)
     if user.id == current_user.id:
         flash("ไม่สามารถเปลี่ยนโรลของตัวเองได้", "warning")
         return redirect(url_for("admin.manage_users"))
- 
+
     new_role = request.form.get("role")
     try:
         user.set_role(new_role)
         flash(f"เปลี่ยน '{user.username}' เป็น {new_role} แล้ว", "success")
     except ValueError as e:
         flash(str(e), "danger")
- 
+
     return redirect(url_for("admin.manage_users"))
- 
+
 
 @admin_bp.route("/users/<int:user_id>/toggle-active", methods=["POST"])
 @admin_required
 def toggle_user_active(user_id: int):
     from models.user import User
-    user = User.get_by_id(user_id)
+    user = User.get_by_id_any(user_id)  # ใช้ get_by_id_any เพื่อให้ดึง inactive user ได้ด้วย
     if not user:
         abort(404)
     if user.id == current_user.id:
         flash("ไม่สามารถระงับบัญชีของตัวเองได้", "warning")
         return redirect(url_for("admin.manage_users"))
- 
+
     user.set_active(not user.is_active)
     status = "เปิดใช้" if user.is_active else "ระงับ"
     flash(f"{status}บัญชี '{user.username}' แล้ว", "success")

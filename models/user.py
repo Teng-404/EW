@@ -45,9 +45,20 @@ class User(UserMixin):
     # ── Queries ────────────────────────────────────────────
     @classmethod
     def get_by_id(cls, user_id: int) -> "User | None":
+        """ใช้กับ login_manager — คืนเฉพาะ active user"""
         conn = get_db()
         cur  = conn.cursor(dictionary=True)
         cur.execute("SELECT * FROM users WHERE id = %s AND is_active = TRUE", (user_id,))
+        row = cur.fetchone()
+        cur.close()
+        return cls(row) if row else None
+
+    @classmethod
+    def get_by_id_any(cls, user_id: int) -> "User | None":
+        """ใช้กับ admin — คืน user ทุกสถานะ (active และ inactive)"""
+        conn = get_db()
+        cur  = conn.cursor(dictionary=True)
+        cur.execute("SELECT * FROM users WHERE id = %s", (user_id,))
         row = cur.fetchone()
         cur.close()
         return cls(row) if row else None
