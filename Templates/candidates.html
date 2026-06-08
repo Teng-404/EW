@@ -22,7 +22,7 @@
       </span>
     </div>
     <div style="display:flex; gap:8px; flex-wrap:wrap;">
-      <a href="{{ url_for('vote.results', election_id=election.id) }}" class="btn btn-outline btn-sm">ดูผลคะแนน</a>
+      <a href="{{ url_for('vote.results') }}" class="btn btn-outline btn-sm">ดูผลคะแนน</a>
       {% if current_user.is_authenticated %}
         <a href="{{ url_for('candidates.export_excel', election_id=election.id) }}" class="btn btn-ghost btn-sm">⬇ Excel</a>
       {% endif %}
@@ -31,7 +31,7 @@
 
   {% if candidates %}
   <div class="card-body">
-    <div class="grid-3">
+    <div style="display:grid; grid-template-columns:repeat(4,1fr); gap:12px;"  id="candidateGrid">
       {% for c in candidates %}
       <div style="border:1px solid var(--border); border-radius:var(--radius-lg); overflow:hidden; background:var(--card);">
 
