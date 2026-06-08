@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+{% block title %}นำเข้าสมาชิก{% endblock %}
+
+{% block content %}
+<div class="mb-3">
+  <h1>นำเข้าข้อมูลสมาชิก</h1>
+  <p class="text-muted">อัปโหลดไฟล์ Excel เพื่อนำเข้าสมาชิกสหกรณ์ — ข้อมูลเก่าจะถูกลบทั้งหมดก่อน</p>
+</div>
+
+<div class="grid-2 gap-3">
+
+  <!-- Upload Card -->
+  <div class="card">
+    <div class="card-header"><h2>อัปโหลด Excel</h2></div>
+    <div class="card-body">
+      <form method="POST" enctype="multipart/form-data"
+            action="{{ url_for('admin.import_members') }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+        <div class="mb-3">
+          <label class="form-label">ไฟล์ Excel (.xlsx / .xls)</label>
+          <input type="file" name="file" accept=".xlsx,.xls" class="form-control" required>
+        </div>
+
+        <div class="alert alert-warning mb-3">
+          <strong>⚠ คำเตือน:</strong> การนำเข้าจะ<strong>ลบข้อมูลสมาชิกทั้งหมด</strong>ที่มีอยู่ก่อน
+          รวมถึงประวัติการยืนยันตัวตนและ OTP ที่ยังไม่ใช้งาน
+        </div>
+
+        <button type="submit" class="btn btn-primary w-100">นำเข้าข้อมูล</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Info Card -->
+  <div class="card">
+    <div class="card-header"><h2>รูปแบบไฟล์ Excel</h2></div>
+    <div class="card-body">
+      <p class="mb-2">ไฟล์ต้องมีคอลัมน์ตามลำดับ:</p>
+      <table class="table table-sm">
+        <thead>
+          <tr>
+            <th>คอลัมน์</th>
+            <th>ชื่อ</th>
+            <th>จำเป็น</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td>A</td><td>เลขสมาชิก (member_no)</td><td>✅</td></tr>
+          <tr><td>B</td><td>ชื่อ-นามสกุล (full_name)</td><td>✅</td></tr>
+          <tr><td>C</td><td>Email</td><td>ไม่จำเป็น</td></tr>
+        </tbody>
+      </table>
+      <p class="text-muted mt-2" style="font-size:12px;">แถวแรก (Header) จะถูกข้ามอัตโนมัติ</p>
+
+      {% if member_count is not none %}
+      <hr style="border-color:var(--border); margin:12px 0;">
+      <div class="stat-card" style="border-left-color:var(--navy-mid); margin:0;">
+        <div class="stat-label">สมาชิกในระบบปัจจุบัน</div>
+        <div class="stat-value">{{ member_count | default(0) }}</div>
+        <div class="stat-sub">ราย</div>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+
+</div>
+{% endblock %}

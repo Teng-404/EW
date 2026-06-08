@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% block title %}ตั้งค่าระบบ{% endblock %}
+
+{% block content %}
+<div class="mb-3">
+  <h1>ตั้งค่าระบบ</h1>
+  <p class="text-muted">เปิด/ระงับการเข้าใช้งานแต่ละระบบ</p>
+</div>
+
+<div class="card" style="max-width:480px;">
+  <div class="card-body">
+    <form method="POST" action="{{ url_for('admin.system_settings') }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+      <div class="mb-3 d-flex align-center justify-between">
+        <div>
+          <div style="font-weight:500;">ระบบยืนยันตัวตน</div>
+          <div class="text-muted" style="font-size:12px;">สมาชิกกรอก Email รับ OTP ก่อนลงคะแนน</div>
+        </div>
+        <label class="toggle-switch">
+          <input type="checkbox" name="verify_enabled"
+                 {% if settings.get('verify_enabled', True) %}checked{% endif %}>
+          <span class="slider"></span>
+        </label>
+      </div>
+
+      <hr style="border-color:var(--border); margin:12px 0;">
+
+      <div class="mb-3 d-flex align-center justify-between">
+        <div>
+          <div style="font-weight:500;">ระบบลงคะแนน</div>
+          <div class="text-muted" style="font-size:12px;">สมาชิกเข้าสู่หน้าลงคะแนนได้</div>
+        </div>
+        <label class="toggle-switch">
+          <input type="checkbox" name="vote_enabled"
+                 {% if settings.get('vote_enabled', True) %}checked{% endif %}>
+          <span class="slider"></span>
+        </label>
+      </div>
+
+      <div class="mt-4">
+        <button type="submit" class="btn btn-primary w-100">บันทึกการตั้งค่า</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

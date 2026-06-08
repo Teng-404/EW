@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}ผลคะแนน — {{ election.title }}{% endblock %}
+{% block title %}ผลคะแนน — Election Web{% endblock %}
 
 {% block head %}
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
@@ -8,213 +8,118 @@
 {% block content %}
 <div class="d-flex align-center justify-between flex-wrap gap-2 mb-3">
   <div>
-    <a href="{{ url_for('vote.index') }}" class="btn btn-ghost btn-sm mb-1" style="padding-left:6px;">
-      <svg style="width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round" viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
-      กลับ
-    </a>
-    <h1 style="margin-bottom:6px;">{{ election.title }}</h1>
-    <span class="badge badge-{{ election.status }}">
-      <span class="status-dot {{ election.status }}"></span>
-      {% if election.status == 'open' %}กำลังเปิด — อัปเดตอัตโนมัติทุก 10 วิ
-      {% elif election.status == 'pending' %}รอดำเนินการ
-      {% else %}ปิดแล้ว — ผลคะแนนสุดท้าย{% endif %}
-    </span>
+    <h1>ผลคะแนนการเลือกตั้ง</h1>
+    <p style="font-size:13px; color:var(--text-3); margin-top:4px;" id="lastUpdated"></p>
   </div>
-  <div style="display:flex; gap:8px; flex-wrap:wrap;">
-    {% if current_user.is_authenticated %}
-      <a href="{{ url_for('candidates.export_excel', election_id=election.id) }}" class="btn btn-outline btn-sm">
-        ⬇ Excel ผู้สมัคร
-      </a>
-    {% endif %}
-    {% if current_user.is_authenticated and current_user.is_admin %}
-      <a href="{{ url_for('admin.export_results', election_id=election.id) }}" class="btn btn-primary btn-sm">
-        ⬇ Excel ผลคะแนน
-      </a>
-    {% endif %}
-  </div>
+  <a href="{{ url_for('vote.ballot') }}" class="btn btn-outline btn-sm">← กลับลงคะแนน</a>
 </div>
 
-{# ── Stats ── #}
-<div class="grid-4 mb-3">
-  <div class="stat-card" style="border-left-color:var(--navy-mid)">
-    <div class="stat-label">คะแนนทั้งหมด</div>
-    <div class="stat-value" id="totalVotes">{{ total_votes }}</div>
-    <div class="stat-sub">ผู้มาใช้สิทธิ์</div>
-  </div>
-  <div class="stat-card" style="border-left-color:var(--sky)">
-    <div class="stat-label">ผู้สมัครทั้งหมด</div>
-    <div class="stat-value">{{ candidates | length }}</div>
-    <div class="stat-sub">คน</div>
-  </div>
-  {% if candidates %}
-  <div class="stat-card" style="border-left-color:var(--gold)">
-    <div class="stat-label">ผู้นำ</div>
-    <div class="stat-value" style="font-size:1rem; font-weight:500; padding-top:4px;" id="leadName">
-      {{ candidates[0].name if total_votes > 0 else '—' }}
-    </div>
-    {% if candidates[0].party and total_votes > 0 %}
-      <div class="stat-sub">{{ candidates[0].party }}</div>
-    {% endif %}
-  </div>
-  <div class="stat-card" style="border-left-color:var(--gold)">
-    <div class="stat-label">คะแนนนำ</div>
-    <div class="stat-value" id="leadVotes">
-      {{ candidates[0].vote_count if total_votes > 0 else '—' }}
-    </div>
-    {% if total_votes > 0 %}
-      <div class="stat-sub">{{ (candidates[0].vote_count / total_votes * 100) | round(1) }}%</div>
-    {% endif %}
-  </div>
-  {% endif %}
-</div>
+{% for item in data %}
+{% set e = item.election %}
+{% set candidates = item.candidates %}
+{% set total = item.total %}
 
-{# ── Chart ── #}
 <div class="card mb-3">
   <div class="card-header">
-    <span style="font-size:13px; font-weight:500;">กราฟผลคะแนน</span>
-    <span id="lastUpdated" style="font-size:11px; color:var(--text-3);"></span>
+    <div>
+      <div style="font-weight:500; font-size:14px; margin-bottom:4px;">{{ e.type_label }}</div>
+      <span class="badge badge-{{ e.status }}">
+        <span class="status-dot {{ e.status }}"></span>
+        {% if e.status == 'open' %}กำลังเปิด — อัปเดตทุก 10 วิ
+        {% elif e.status == 'pending' %}รอดำเนินการ
+        {% else %}ปิดแล้ว — ผลสุดท้าย{% endif %}
+      </span>
+    </div>
+    <div style="font-size:11px; color:var(--text-3); text-align:right;">
+      <div>คะแนนรวม</div>
+      <div style="font-size:1.5rem; font-weight:300; color:var(--navy-mid); letter-spacing:-.03em; line-height:1.2;" class="total-votes" data-id="{{ e.id }}">{{ total }}</div>
+    </div>
   </div>
-  <div class="card-body">
-    <canvas id="resultsChart" style="max-height:280px;"></canvas>
-  </div>
-</div>
 
-{# ── Results Table ── #}
-<div class="card">
-  <div class="card-header">
-    <span style="font-size:13px; font-weight:500;">ผลคะแนนละเอียด</span>
-  </div>
-  <div style="padding:4px 18px 12px;">
-    <div id="resultsBody">
+  <div style="padding:16px 18px; display:grid; grid-template-columns:1fr 260px; gap:20px; align-items:start;">
+
+    {# Result rows #}
+    <div class="result-rows" data-id="{{ e.id }}">
       {% for c in candidates %}
       <div class="result-row">
-        <div class="result-rank {% if loop.index == 1 and total_votes %}first{% endif %}">
-          #{{ loop.index }}
-        </div>
-        <div class="result-num {% if loop.index == 1 and total_votes %}gold{% endif %}">
-          {{ c.number or loop.index }}
-        </div>
+        <div class="result-rank{% if loop.index == 1 and total %} first{% endif %}">#{{ loop.index }}</div>
+        <div class="result-num{% if loop.index == 1 and total %} gold{% endif %}">{{ c.number or loop.index }}</div>
         <div class="result-info">
           <div class="result-info-name">{{ c.name }}</div>
-          {% if c.party %}<div class="result-info-party">{{ c.party }}</div>{% endif %}
         </div>
         <div class="result-bar-wrap">
-          {% set pct = (c.vote_count / total_votes * 100) | round(1) if total_votes else 0 %}
           <div class="progress-wrap">
-            <div class="progress-bar {% if loop.index == 1 and total_votes %}gold{% endif %}"
-                 style="width:{{ pct }}%;"></div>
+            <div class="progress-bar{% if loop.index == 1 and total %} gold{% endif %}"
+                 style="width:{{ c.vote_count / total * 100 if total else 0 }}%;"></div>
           </div>
         </div>
         <div class="result-votes">{{ c.vote_count }}</div>
-        <div class="result-pct">
-          {{ (c.vote_count / total_votes * 100) | round(1) if total_votes else 0 }}%
-        </div>
+        <div class="result-pct">{{ (c.vote_count / total * 100)|round(1) if total else 0 }}%</div>
       </div>
-      {% else %}
-      <div class="empty-state"><p>ยังไม่มีคะแนน</p></div>
       {% endfor %}
+      {% if not candidates %}
+      <div class="empty-state" style="padding:20px;">
+        <p>ยังไม่มีผู้สมัครหรือคะแนน</p>
+      </div>
+      {% endif %}
     </div>
+
+    {# Chart #}
+    <div>
+      <canvas id="chart-{{ e.id }}" height="200"></canvas>
+    </div>
+
   </div>
 </div>
+
+<script>
+(function() {
+  const COLORS = ['#1A3461','#3B7DD8','#C8962A','#1A7F4B','#9A5F10','#B91C1C'];
+  const labels = {{ candidates | map(attribute='name') | list | tojson }};
+  const values = {{ candidates | map(attribute='vote_count') | list | tojson }};
+  new Chart(document.getElementById('chart-{{ e.id }}'), {
+    type: 'bar',
+    data: {
+      labels: labels,
+      datasets: [{
+        data: values,
+        backgroundColor: labels.map((_, i) => COLORS[i % COLORS.length] + '22'),
+        borderColor:     labels.map((_, i) => COLORS[i % COLORS.length]),
+        borderWidth: 1.5, borderRadius: 4, borderSkipped: false,
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins: { legend: { display: false } },
+      scales: {
+        y: { beginAtZero: true, ticks: { stepSize: 1, font: { size: 11 } }, grid: { color: 'rgba(0,0,0,.05)' } },
+        x: { grid: { display: false }, ticks: { font: { size: 11 } } }
+      }
+    }
+  });
+})();
+</script>
+
+{% endfor %}
 {% endblock %}
 
 {% block scripts %}
 <script>
-const ELECTION_ID = {{ election.id }};
-const IS_OPEN     = {{ 'true' if election.is_open else 'false' }};
-const JSON_URL    = "{{ url_for('vote.results_json', election_id=election.id) }}";
-const COLORS      = ['#1A3461','#3B7DD8','#1A7F4B','#C8962A','#B91C1C','#6D4C9F','#0F766E','#C05621'];
-
-const initialLabels = [{% for c in candidates %}"{{ c.name }}", {% endfor %}];
-const initialData   = [{% for c in candidates %}{{ c.vote_count }}, {% endfor %}];
-
-const ctx = document.getElementById('resultsChart').getContext('2d');
-const chart = new Chart(ctx, {
-  type: 'bar',
-  data: {
-    labels: initialLabels,
-    datasets: [{
-      data: initialData,
-      backgroundColor: initialLabels.map((_, i) => COLORS[i % COLORS.length] + '22'),
-      borderColor:     initialLabels.map((_, i) => COLORS[i % COLORS.length]),
-      borderWidth: 1.5,
-      borderRadius: 6,
-      borderSkipped: false,
-    }]
-  },
-  options: {
-    responsive: true,
-    plugins: {
-      legend: { display: false },
-      tooltip: {
-        backgroundColor: '#0D1F3C',
-        titleFont: { family: "'IBM Plex Sans Thai', sans-serif", size: 12 },
-        bodyFont:  { family: "'IBM Plex Sans Thai', sans-serif", size: 12 },
-        padding: 10,
-        cornerRadius: 6,
-      }
-    },
-    scales: {
-      y: {
-        beginAtZero: true,
-        ticks: { stepSize: 1, font: { family: "'IBM Plex Sans Thai', sans-serif", size: 11 } },
-        grid: { color: 'rgba(0,0,0,.05)' }
-      },
-      x: {
-        grid: { display: false },
-        ticks: { font: { family: "'IBM Plex Sans Thai', sans-serif", size: 11 } }
-      }
-    }
-  }
-});
-
-if (IS_OPEN) {
-  setInterval(fetchResults, 10000);
-}
+const OPEN_EXISTS = {{ data | selectattr('election.status', 'equalto', 'open') | list | length > 0 | tojson }};
 
 async function fetchResults() {
   try {
-    const res  = await fetch(JSON_URL);
+    const res  = await fetch('{{ url_for("vote.results_json") }}');
     const data = await res.json();
-    updateUI(data);
-  } catch(e) {}
+    data.forEach(e => {
+      const total = e.total_votes;
+      document.querySelectorAll(`.total-votes[data-id="${e.id}"]`).forEach(el => el.textContent = total);
+    });
+    document.getElementById('lastUpdated').textContent = 'อัปเดต ' + new Date().toLocaleTimeString('th-TH');
+  } catch(err) {}
 }
 
-function updateUI(data) {
-  const candidates = data.candidates;
-  const total      = data.total_votes;
-
-  chart.data.labels = candidates.map(c => c.name);
-  chart.data.datasets[0].data = candidates.map(c => c.vote_count);
-  chart.update();
-
-  document.getElementById('totalVotes').textContent = total;
-  if (total > 0) {
-    document.getElementById('leadName').textContent  = candidates[0].name;
-    document.getElementById('leadVotes').textContent = candidates[0].vote_count;
-  }
-
-  const body = document.getElementById('resultsBody');
-  body.innerHTML = candidates.map((c, i) => `
-    <div class="result-row">
-      <div class="result-rank${i===0 && total ? ' first' : ''}">#${i+1}</div>
-      <div class="result-num${i===0 && total ? ' gold' : ''}">${c.number || i+1}</div>
-      <div class="result-info">
-        <div class="result-info-name">${c.name}</div>
-        ${c.party ? `<div class="result-info-party">${c.party}</div>` : ''}
-      </div>
-      <div class="result-bar-wrap">
-        <div class="progress-wrap">
-          <div class="progress-bar${i===0 && total ? ' gold' : ''}" style="width:${c.percent}%;"></div>
-        </div>
-      </div>
-      <div class="result-votes">${c.vote_count}</div>
-      <div class="result-pct">${c.percent}%</div>
-    </div>
-  `).join('');
-
-  document.getElementById('lastUpdated').textContent =
-    'อัปเดต ' + new Date().toLocaleTimeString('th-TH');
-}
+if (OPEN_EXISTS) setInterval(fetchResults, 10000);
+fetchResults();
 </script>
 {% endblock %}

@@ -1,110 +1,135 @@
 {% extends "base.html" %}
-{% block title %}ลงคะแนน — {{ election.title }}{% endblock %}
+{% block title %}ลงคะแนน — {{ election.type_label }}{% endblock %}
 
 {% block content %}
-<div style="max-width:900px; margin:0 auto;">
-  <a href="{{ url_for('vote.index') }}" class="btn btn-ghost btn-sm mb-2" style="padding-left:6px;">
+<div style="max-width:960px; margin:0 auto;">
+  <a href="{{ url_for('vote.ballot') }}" class="btn btn-ghost btn-sm mb-2" style="padding-left:6px;">
     <svg style="width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round" viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
-    กลับหน้าแรก
+    กลับเมนูลงคะแนน
   </a>
 
-  <h1 style="margin-bottom:4px;">{{ election.title }}</h1>
-  <p style="font-size:13px; color:var(--text-3); margin-bottom:16px;">เลือกผู้สมัครที่ต้องการ แล้วกดยืนยัน</p>
+  <h1 style="margin-bottom:4px;">{{ election.type_label }}</h1>
+  <p style="font-size:13px; color:var(--text-3); margin-bottom:16px;">
+    เลือกได้ <strong>{{ max_votes }}</strong> คน — การลงคะแนนไม่สามารถเปลี่ยนแปลงได้ภายหลัง
+  </p>
 
   <div class="flash info" role="alert" style="margin-bottom:16px;">
-    <svg class="flash-icon" viewBox="0 0 24 24">
-      <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
-    </svg>
-    <span class="flash-body">การลงคะแนนไม่สามารถเปลี่ยนแปลงได้ภายหลัง</span>
+    <svg class="flash-icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+    <span class="flash-body">เลือกได้สูงสุด {{ max_votes }} คน แล้วกด "ยืนยันการลงคะแนน"</span>
   </div>
-</div>
 
-<form method="POST" id="voteForm" style="max-width:900px; margin:0 auto;">
-  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+  {# ── Selected bar ── #}
+  <div class="selected-bar" id="selectedBar">
+    <span id="selectedText">เลือกแล้ว 0 / {{ max_votes }} คน</span>
+    <button type="button" class="btn btn-ghost btn-sm" onclick="clearAll()">ยกเลิกทั้งหมด</button>
+  </div>
 
-  {% if candidates %}
-    <div class="grid-3" id="candidateGrid" style="margin-bottom:14px;">
-      {% for c in candidates %}
-      <label class="candidate-card" id="card-{{ c.id }}">
-        <input type="radio" name="candidate_id" value="{{ c.id }}" required
-               onchange="selectCard({{ c.id }},'{{ c.name }}')" />
+  <form method="POST" action="{{ url_for('vote.ballot_submit', election_type=election.type) }}"
+        id="voteForm" onsubmit="return confirmVote()">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
 
-        {# Photo section #}
-        <div class="cand-photo-wrap">
-          {% if c.photo_url %}
-            <img src="{{ c.photo_url }}" alt="{{ c.name }}"
-                 onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';" />
-            <div class="cand-photo-placeholder" style="display:none;">
-              <svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+    {% if candidates %}
+      <div class="grid-3" id="candidateGrid" style="margin-bottom:16px;">
+        {% for c in candidates %}
+        <label class="candidate-card" id="card-{{ c.id }}" style="cursor:pointer; display:block;">
+          <input type="{% if max_votes == 1 %}radio{% else %}checkbox{% endif %}"
+                 name="candidate_id" value="{{ c.id }}"
+                 {% if max_votes == 1 %}required{% endif %}
+                 onchange="updateSelection()" style="display:none;" />
+
+          <div class="cand-photo-wrap">
+            {% if c.photo_url %}
+              <img src="{{ c.photo_url }}" alt="{{ c.name }}" loading="lazy" />
+            {% else %}
+              <div class="cand-photo-placeholder">
+                <svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+              </div>
+            {% endif %}
+            {% if c.number %}
+              <div class="cand-num-badge">{{ c.number }}</div>
+            {% endif %}
+            <div class="cand-check" id="check-{{ c.id }}"
+                 style="display:none; position:absolute; top:8px; right:8px; width:22px; height:22px;
+                        border-radius:50%; background:var(--green); display:none; align-items:center; justify-content:center;">
+              <svg style="width:12px;height:12px;fill:none;stroke:#fff;stroke-width:3;stroke-linecap:round;stroke-linejoin:round" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
             </div>
-          {% else %}
-            <div class="cand-photo-placeholder">
-              <svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-            </div>
-          {% endif %}
-          <div class="cand-num-badge">{{ c.number or loop.index }}</div>
-          <div class="check-overlay">
-            <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
           </div>
-        </div>
 
-        {# Info section #}
-        <div class="cand-body">
-          <div class="candidate-name">{{ c.name }}</div>
-          {% if c.party %}<div class="candidate-party">{{ c.party }}</div>{% endif %}
-          {% if c.bio %}<div class="candidate-bio">{{ c.bio | truncate(100) }}</div>{% endif %}
-        </div>
-      </label>
-      {% endfor %}
-    </div>
+          <div class="cand-body">
+            <div class="candidate-name">{{ c.name }}</div>
+          </div>
+        </label>
+        {% endfor %}
+      </div>
 
-    <div class="selected-bar" id="selectedBar">
-      <span>เลือก: <strong id="selectedName" style="color:var(--navy-mid);"></strong></span>
-      <button type="submit" class="btn btn-primary btn-sm">ยืนยันการลงคะแนน →</button>
-    </div>
+      <div style="display:flex; gap:10px; align-items:center;">
+        <button type="submit" class="btn btn-primary btn-lg" id="submitBtn" disabled>
+          ยืนยันการลงคะแนน
+        </button>
+        <a href="{{ url_for('vote.ballot') }}" class="btn btn-ghost btn-lg">ยกเลิก</a>
+      </div>
 
-  {% else %}
-    <div class="empty-state">
-      <div class="empty-icon">👥</div>
-      <p>ยังไม่มีผู้สมัครในวาระนี้</p>
-    </div>
-  {% endif %}
-</form>
-
-{# Confirm Modal #}
-<div class="confirm-overlay" id="confirmOverlay">
-  <div class="confirm-modal">
-    <div class="confirm-modal-icon">
-      <svg viewBox="0 0 24 24"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>
-    </div>
-    <h2>ยืนยันการลงคะแนน?</h2>
-    <p>คุณกำลังจะลงคะแนนให้ <strong id="confirmName" style="color:var(--text-1);"></strong><br/>การลงคะแนนไม่สามารถเปลี่ยนแปลงได้</p>
-    <div class="btn-row">
-      <button onclick="closeConfirm()" class="btn btn-outline">ยกเลิก</button>
-      <button onclick="submitVote()"   class="btn btn-primary">ยืนยัน ✓</button>
-    </div>
-  </div>
+    {% else %}
+      <div class="empty-state">
+        <div class="empty-icon">👤</div>
+        <p>ยังไม่มีผู้สมัครในวาระนี้</p>
+      </div>
+    {% endif %}
+  </form>
 </div>
 {% endblock %}
 
 {% block scripts %}
 <script>
-function selectCard(id, name) {
-  document.querySelectorAll('.candidate-card').forEach(c => c.classList.remove('selected'));
-  document.getElementById('card-' + id).classList.add('selected');
-  document.getElementById('selectedName').textContent = name;
-  document.getElementById('selectedBar').classList.add('show');
+const maxVotes = {{ max_votes }};
+let selected = new Set();
+
+function updateSelection() {
+  const inputs = document.querySelectorAll('input[name="candidate_id"]');
+  selected.clear();
+  inputs.forEach(inp => {
+    if (inp.checked) selected.add(inp.value);
+    const card  = document.getElementById('card-' + inp.value);
+    const check = document.getElementById('check-' + inp.value);
+    if (inp.checked) {
+      card.style.borderColor  = 'var(--sky)';
+      card.style.background   = 'var(--sky-light)';
+      if (check) check.style.display = 'flex';
+    } else {
+      card.style.borderColor  = '';
+      card.style.background   = '';
+      if (check) check.style.display = 'none';
+    }
+  });
+
+  // block over-selection for checkbox
+  if (maxVotes > 1) {
+    inputs.forEach(inp => {
+      if (!inp.checked) inp.disabled = selected.size >= maxVotes;
+    });
+  }
+
+  const n = selected.size;
+  document.getElementById('selectedText').textContent = `เลือกแล้ว ${n} / ${maxVotes} คน`;
+  document.getElementById('selectedBar').classList.toggle('show', n > 0);
+  document.getElementById('submitBtn').disabled = n === 0;
 }
 
-document.getElementById('voteForm').addEventListener('submit', function(e) {
-  e.preventDefault();
-  const radio = document.querySelector('input[name="candidate_id"]:checked');
-  if (!radio) return;
-  document.getElementById('confirmName').textContent = document.getElementById('selectedName').textContent;
-  document.getElementById('confirmOverlay').classList.add('show');
-});
+function clearAll() {
+  document.querySelectorAll('input[name="candidate_id"]').forEach(inp => {
+    inp.checked  = false;
+    inp.disabled = false;
+  });
+  updateSelection();
+}
 
-function closeConfirm() { document.getElementById('confirmOverlay').classList.remove('show'); }
-function submitVote()   { document.getElementById('voteForm').submit(); }
+function confirmVote() {
+  const names = [];
+  document.querySelectorAll('input[name="candidate_id"]:checked').forEach(inp => {
+    const card = document.getElementById('card-' + inp.value);
+    names.push(card.querySelector('.candidate-name').textContent.trim());
+  });
+  return confirm(`ยืนยันการลงคะแนน:\n${names.join('\n')}\n\nไม่สามารถเปลี่ยนแปลงได้ภายหลัง`);
+}
 </script>
 {% endblock %}

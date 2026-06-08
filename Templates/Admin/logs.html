@@ -1,0 +1,93 @@
+{% extends "base.html" %}
+{% block title %}Log การใช้งาน{% endblock %}
+
+{% block content %}
+<div class="d-flex align-center justify-between flex-wrap gap-2 mb-3">
+  <div>
+    <h1>Log การใช้งาน</h1>
+    <p class="text-muted">บันทึกทุกการเข้าใช้งานระบบ</p>
+  </div>
+  <div style="display:flex;gap:8px;">
+    <a href="{{ url_for('admin.export_logs', format='excel', keyword=keyword, ip=ip, date_from=date_from, date_to=date_to) }}"
+       class="btn btn-outline btn-sm">⬇ Excel</a>
+    <a href="{{ url_for('admin.export_logs', format='pdf', keyword=keyword, ip=ip, date_from=date_from, date_to=date_to) }}"
+       class="btn btn-outline btn-sm">⬇ PDF</a>
+  </div>
+</div>
+
+<!-- Filter -->
+<form method="GET" action="{{ url_for('admin.logs') }}" class="card mb-3">
+  <div class="card-body">
+    <div class="grid-4 gap-2">
+      <div>
+        <label class="form-label">ค้นหาชื่อ/เลขสมาชิก</label>
+        <input type="text" name="keyword" value="{{ keyword }}" class="form-control" placeholder="ค้นหา…">
+      </div>
+      <div>
+        <label class="form-label">IP Address</label>
+        <input type="text" name="ip" value="{{ ip }}" class="form-control" placeholder="192.168…">
+      </div>
+      <div>
+        <label class="form-label">วันที่เริ่ม</label>
+        <input type="date" name="date_from" value="{{ date_from }}" class="form-control">
+      </div>
+      <div>
+        <label class="form-label">วันที่สิ้นสุด</label>
+        <input type="date" name="date_to" value="{{ date_to }}" class="form-control">
+      </div>
+    </div>
+    <div class="mt-2 d-flex gap-2">
+      <button type="submit" class="btn btn-primary btn-sm">ค้นหา</button>
+      <a href="{{ url_for('admin.logs') }}" class="btn btn-ghost btn-sm">ล้างตัวกรอง</a>
+    </div>
+  </div>
+</form>
+
+<!-- Table -->
+<div class="card">
+  <div class="card-body" style="padding:0;">
+    <div style="overflow-x:auto;">
+      <table class="table">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>เลขสมาชิก</th>
+            <th>ชื่อ</th>
+            <th>Action</th>
+            <th>ระบบ</th>
+            <th>IP</th>
+            <th>รายละเอียด</th>
+            <th>เวลา</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for log in logs %}
+          <tr>
+            <td class="text-muted" style="font-size:12px;">{{ loop.index }}</td>
+            <td>{{ log.member_no or '—' }}</td>
+            <td>{{ log.full_name or '—' }}</td>
+            <td>
+              <span class="badge badge-{% if log.action == 'vote' %}open{% elif log.action == 'verify' %}pending{% else %}closed{% endif %}">
+                {{ log.action }}
+              </span>
+            </td>
+            <td class="text-muted">{{ log.system_type or '—' }}</td>
+            <td style="font-family:monospace;font-size:12px;">{{ log.ip_address }}</td>
+            <td class="text-muted" style="font-size:12px;">{{ log.detail or '' }}</td>
+            <td style="white-space:nowrap;font-size:12px;">
+              {{ log.logged_at.strftime('%d/%m/%Y %H:%M') if log.logged_at else '—' }}
+            </td>
+          </tr>
+          {% else %}
+          <tr>
+            <td colspan="8" class="text-center text-muted" style="padding:24px;">ไม่พบข้อมูล Log</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<p class="text-muted mt-2" style="font-size:12px;">แสดงสูงสุด 500 รายการ</p>
+{% endblock %}

@@ -1,0 +1,100 @@
+{% extends "base.html" %}
+{% block title %}กรอก OTP — Election Web{% endblock %}
+
+{% block content %}
+<div class="auth-page" style="padding-top:0; min-height:calc(100vh - var(--nav-h));">
+  <div class="auth-card">
+
+    <div class="auth-icon">
+      <svg viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="10" rx="2" ry="2"/><path d="M8 11V7a4 4 0 018 0v4"/></svg>
+    </div>
+
+    <div class="auth-title">กรอกรหัส OTP</div>
+    <div class="auth-sub">
+      {% if purpose == 'verify' %}
+        รหัส 6 หลักที่ส่งไปยัง Email ของคุณ (หมดอายุใน 5 นาที)
+      {% else %}
+        รหัส OTP สำหรับลงคะแนน (หมดอายุใน 5 นาที)
+      {% endif %}
+    </div>
+
+    <form method="POST">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+
+      <div class="otp-wrap" id="otpWrap">
+        {% for i in range(6) %}
+          <input class="otp-digit" type="text" maxlength="1" inputmode="numeric"
+                 pattern="[0-9]" autocomplete="one-time-code"
+                 id="d{{ i }}" data-idx="{{ i }}" />
+        {% endfor %}
+      </div>
+      <input type="hidden" name="otp" id="otpHidden" />
+
+      <div class="countdown" id="countdown"></div>
+
+      <button type="submit" class="btn btn-primary btn-block btn-lg" id="submitBtn" disabled>ยืนยัน</button>
+    </form>
+
+    <p style="text-align:center; font-size:12px; color:var(--text-3); margin-top:16px;">
+      {% if purpose == 'verify' %}
+        <a href="{{ url_for('verify.verify_identity') }}">← ขอ OTP ใหม่</a>
+      {% else %}
+        <a href="{{ url_for('vote.request_otp') }}">← ขอ OTP ใหม่</a>
+      {% endif %}
+    </p>
+
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const digits  = document.querySelectorAll('.otp-digit');
+const hidden  = document.getElementById('otpHidden');
+const btn     = document.getElementById('submitBtn');
+let expire    = Date.now() + 5 * 60 * 1000;
+
+function updateOtp() {
+  const val = [...digits].map(d => d.value).join('');
+  hidden.value = val;
+  [...digits].forEach((d, i) => {
+    d.classList.toggle('filled', !!d.value);
+  });
+  btn.disabled = val.length < 6;
+}
+
+digits.forEach((d, i) => {
+  d.addEventListener('input', () => {
+    d.value = d.value.replace(/\D/g, '').slice(-1);
+    if (d.value && i < 5) digits[i + 1].focus();
+    updateOtp();
+  });
+  d.addEventListener('keydown', e => {
+    if (e.key === 'Backspace' && !d.value && i > 0) {
+      digits[i - 1].focus();
+      digits[i - 1].value = '';
+      updateOtp();
+    }
+  });
+  d.addEventListener('paste', e => {
+    const text = e.clipboardData.getData('text').replace(/\D/g, '').slice(0, 6);
+    [...text].forEach((c, j) => { if (digits[i + j]) digits[i + j].value = c; });
+    updateOtp();
+    if (text.length >= 6) btn.focus();
+    e.preventDefault();
+  });
+});
+
+digits[0].focus();
+
+const cd = document.getElementById('countdown');
+function tick() {
+  const left = Math.max(0, Math.floor((expire - Date.now()) / 1000));
+  const m = String(Math.floor(left / 60)).padStart(2, '0');
+  const s = String(left % 60).padStart(2, '0');
+  cd.innerHTML = left > 0 ? `หมดอายุใน <strong>${m}:${s}</strong>` : '<span style="color:var(--red)">OTP หมดอายุแล้ว กรุณาขอใหม่</span>';
+  if (left > 0) setTimeout(tick, 1000);
+}
+tick();
+</script>
+{% endblock %}

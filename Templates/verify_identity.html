@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% block title %}ยืนยันตัวตน — Election Web{% endblock %}
+
+{% block content %}
+<div class="auth-page" style="padding-top:0; min-height:calc(100vh - var(--nav-h));">
+  <div class="auth-card">
+
+    <div class="auth-icon gold">
+      <svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+    </div>
+
+    <div class="auth-title">ยืนยันตัวตน</div>
+    <div class="auth-sub">ขั้นที่ 1 — กรอก Email ที่ลงทะเบียนไว้กับสหกรณ์</div>
+
+    {% if disabled %}
+      <div class="flash warning" role="alert" style="margin-bottom:16px;">
+        <span class="flash-body">ยังไม่เปิดให้ใช้งานระบบยืนยันตัวตน</span>
+      </div>
+    {% else %}
+      <form method="POST" action="{{ url_for('verify.verify_identity') }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+
+        <div class="form-group">
+          <label for="email">Email ที่ลงทะเบียนไว้ <span class="required">*</span></label>
+          <input type="email" id="email" name="email" class="form-control" required
+                 autofocus placeholder="ชื่อ@email.com" />
+        </div>
+
+        <div class="form-group">
+          <label for="email_new">
+            ต้องการเปลี่ยน Email ใหม่?
+            <span style="font-weight:400; color:var(--text-3);">(เว้นว่างถ้าไม่เปลี่ยน)</span>
+          </label>
+          <input type="email" id="email_new" name="email_new" class="form-control"
+                 placeholder="email_ใหม่@domain.com" />
+          <div class="form-hint">ระบบจะส่ง OTP ไปยัง Email นี้แทน</div>
+        </div>
+
+        <button type="submit" class="btn btn-primary btn-block btn-lg">ขอรหัส OTP</button>
+      </form>
+
+      <p style="text-align:center; font-size:12px; color:var(--text-3); margin-top:16px;">
+        ยืนยันตัวตนแล้ว?
+        <a href="{{ url_for('vote.request_otp') }}">ไปลงคะแนนได้เลย →</a>
+      </p>
+    {% endif %}
+
+  </div>
+</div>
+{% endblock %}

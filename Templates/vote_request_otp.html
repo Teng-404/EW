@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block title %}ลงคะแนน — เข้าสู่ระบบ{% endblock %}
+
+{% block content %}
+<div class="auth-page" style="padding-top:0; min-height:calc(100vh - var(--nav-h));">
+  <div class="auth-card">
+
+    <div class="auth-icon">
+      <svg viewBox="0 0 24 24"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>
+    </div>
+
+    <div class="auth-title">เข้าสู่ระบบลงคะแนน</div>
+    <div class="auth-sub">ขั้นที่ 2 — กรอก Email เพื่อรับ OTP ลงคะแนน</div>
+
+    {% if disabled %}
+      <div class="flash warning" role="alert" style="margin-bottom:16px;">
+        <span class="flash-body">ยังไม่เปิดให้ใช้งานระบบลงคะแนน</span>
+      </div>
+    {% else %}
+      <form method="POST" action="{{ url_for('vote.request_otp') }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+
+        <div class="form-group">
+          <label for="email">Email <span class="required">*</span></label>
+          <input type="email" id="email" name="email" class="form-control" required
+                 autofocus placeholder="ชื่อ@email.com" />
+          <div class="form-hint">ใช้ Email เดียวกับที่ยืนยันตัวตนไว้</div>
+        </div>
+
+        <button type="submit" class="btn btn-primary btn-block btn-lg">ขอรหัส OTP</button>
+      </form>
+
+      <p style="text-align:center; font-size:12px; color:var(--text-3); margin-top:16px;">
+        ยังไม่ได้ยืนยันตัวตน?
+        <a href="{{ url_for('verify.verify_identity') }}">ไปยืนยันตัวตนก่อน →</a>
+      </p>
+    {% endif %}
+
+  </div>
+</div>
+{% endblock %}

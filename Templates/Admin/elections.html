@@ -14,22 +14,33 @@
 
 {# ── Create ── #}
 <div class="card mb-3">
-  <div class="card-header">
-    <span style="font-size:13px; font-weight:500;">สร้างวาระใหม่</span>
-  </div>
+  <div class="card-header"><span style="font-size:13px; font-weight:500;">สร้างวาระใหม่</span></div>
   <div class="card-body">
     <form method="POST" action="{{ url_for('admin.create_election') }}">
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
-      <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:14px;">
+      <div style="display:grid; grid-template-columns:1fr 180px 100px 80px; gap:12px; margin-bottom:12px; align-items:end;">
         <div class="form-group" style="margin:0;">
-          <label for="title">ชื่อวาระ <span class="required">*</span></label>
-          <input type="text" id="title" name="title" class="form-control" required
-                 placeholder="เช่น การเลือกตั้งประธานนักเรียน 2568" />
+          <label>ชื่อวาระ <span class="required">*</span></label>
+          <input type="text" name="title" class="form-control" required placeholder="เช่น เลือกตั้งประธานกรรมการ 2568" />
         </div>
         <div class="form-group" style="margin:0;">
-          <label for="description">คำอธิบาย</label>
-          <input type="text" id="description" name="description" class="form-control"
-                 placeholder="รายละเอียดเพิ่มเติม (ถ้ามี)" />
+          <label>ประเภท <span class="required">*</span></label>
+          <select name="type" class="form-control" required>
+            <option value="president">ประธานกรรมการ</option>
+            <option value="treasurer">เหรัญญิก</option>
+            <option value="committee" selected>กรรมการ</option>
+          </select>
+        </div>
+        <div class="form-group" style="margin:0;">
+          <label>สิทธิ์ต่อคน</label>
+          <input type="number" name="max_votes" class="form-control" value="1" min="1" max="99" />
+        </div>
+        <div class="form-group" style="margin:0;">
+          <label>แสดงเมนู</label>
+          <select name="is_visible" class="form-control">
+            <option value="1">ใช่</option>
+            <option value="">ไม่</option>
+          </select>
         </div>
       </div>
       <button type="submit" class="btn btn-primary btn-sm">+ สร้างวาระ</button>
@@ -39,72 +50,73 @@
 
 {# ── Table ── #}
 <div class="card">
-  <div class="card-header">
-    <span style="font-size:13px; font-weight:500;">วาระทั้งหมด ({{ elections | length }})</span>
-  </div>
+  <div class="card-header"><span style="font-size:13px; font-weight:500;">วาระทั้งหมด ({{ elections | length }})</span></div>
   {% if elections %}
   <div class="table-wrap">
     <table class="table">
       <thead>
         <tr>
           <th>ชื่อวาระ</th>
+          <th>ประเภท</th>
+          <th>สิทธิ์</th>
+          <th>แสดง</th>
           <th>สถานะ</th>
-          <th>เวลา</th>
           <th>การดำเนินการ</th>
         </tr>
       </thead>
       <tbody>
         {% for e in elections %}
         <tr>
-          <td>
-            <div style="font-weight:500; font-size:13px;">{{ e.title }}</div>
-            {% if e.description %}
-              <div style="font-size:11px; color:var(--text-3); margin-top:2px;">{{ e.description }}</div>
-            {% endif %}
+          <td style="font-weight:500;">{{ e.title }}</td>
+          <td style="font-size:12px; color:var(--sky);">{{ e.type_label }}</td>
+          <td style="text-align:center;">{{ e.max_votes }}</td>
+          <td style="text-align:center;">
+            <span style="font-size:12px; color:{% if e.is_visible %}var(--green){% else %}var(--text-3){% endif %}">
+              {{ '✓' if e.is_visible else '—' }}
+            </span>
           </td>
           <td>
             <span class="badge badge-{{ e.status }}">
               <span class="status-dot {{ e.status }}"></span>
-              {{ e.status }}
+              {% if e.status=='open' %}เปิด{% elif e.status=='pending' %}รอ{% else %}ปิด{% endif %}
             </span>
-          </td>
-          <td style="font-size:11px; color:var(--text-3); line-height:1.7;">
-            {% if e.start_time %}เริ่ม {{ e.start_time.strftime('%d/%m/%y %H:%M') }}<br/>{% endif %}
-            {% if e.end_time   %}สิ้น {{ e.end_time.strftime('%d/%m/%y %H:%M') }}{% endif %}
-            {% if not e.start_time and not e.end_time %}—{% endif %}
           </td>
           <td>
             <div style="display:flex; gap:6px; flex-wrap:wrap;">
-              {% if e.status == 'pending' %}
-                <form method="POST" action="{{ url_for('admin.set_election_status', election_id=e.id) }}" style="display:inline;">
-                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+              <a href="{{ url_for('admin.manage_candidates', election_id=e.id) }}" class="btn btn-outline btn-sm">ผู้สมัคร</a>
+
+              {# Status buttons #}
+              <form method="POST" action="{{ url_for('admin.set_election_status', election_id=e.id) }}" style="display:inline;">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+                {% if e.status == 'pending' %}
                   <input type="hidden" name="status" value="open" />
-                  <button type="submit" class="btn btn-success btn-sm">เปิดรับคะแนน</button>
-                </form>
-              {% elif e.status == 'open' %}
-                <form method="POST" action="{{ url_for('admin.set_election_status', election_id=e.id) }}" style="display:inline;"
-                      onsubmit="return confirm('ปิดการลงคะแนน?')">
-                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+                  <button type="submit" class="btn btn-success btn-sm">เปิด</button>
+                {% elif e.status == 'open' %}
                   <input type="hidden" name="status" value="closed" />
-                  <button type="submit" class="btn btn-warning btn-sm">ปิดการลงคะแนน</button>
-                </form>
-              {% else %}
-                <form method="POST" action="{{ url_for('admin.set_election_status', election_id=e.id) }}" style="display:inline;">
-                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+                  <button type="submit" class="btn btn-warning btn-sm" onclick="return confirm('ปิดวาระ?')">ปิด</button>
+                {% else %}
                   <input type="hidden" name="status" value="pending" />
                   <button type="submit" class="btn btn-ghost btn-sm">รีเซ็ต</button>
-                </form>
-              {% endif %}
+                {% endif %}
+              </form>
 
-              <a href="{{ url_for('admin.manage_candidates', election_id=e.id) }}" class="btn btn-outline btn-sm">ผู้สมัคร</a>
-              <a href="{{ url_for('admin.voters',            election_id=e.id) }}" class="btn btn-ghost btn-sm">ผู้โหวต</a>
-              <a href="{{ url_for('admin.export_results',    election_id=e.id) }}" class="btn btn-outline btn-sm">⬇ Export</a>
+              {# Toggle visible #}
+              <form method="POST" action="{{ url_for('admin.update_election_settings', election_id=e.id) }}" style="display:inline;">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+                <input type="hidden" name="is_visible" value="{{ '0' if e.is_visible else '1' }}" />
+                <button type="submit" class="btn btn-ghost btn-sm">
+                  {{ 'ซ่อน' if e.is_visible else 'แสดง' }}
+                </button>
+              </form>
 
+              {# Delete #}
+              {% if e.status != 'open' %}
               <form method="POST" action="{{ url_for('admin.delete_election', election_id=e.id) }}" style="display:inline;"
-                    onsubmit="return confirm('ลบวาระนี้? จะลบผู้สมัครและคะแนนทั้งหมดด้วย')">
+                    onsubmit="return confirm('ลบวาระ {{ e.title }}?')">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
                 <button type="submit" class="btn btn-danger btn-sm">ลบ</button>
               </form>
+              {% endif %}
             </div>
           </td>
         </tr>
@@ -114,7 +126,8 @@
   </div>
   {% else %}
   <div class="card-body empty-state">
-    <p>ยังไม่มีวาระ — สร้างวาระแรกด้านบน</p>
+    <div class="empty-icon">🗳️</div>
+    <p>ยังไม่มีวาระ กรุณาสร้างวาระแรก</p>
   </div>
   {% endif %}
 </div>
