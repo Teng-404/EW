@@ -11,8 +11,20 @@
     <h1>ผลคะแนนการเลือกตั้ง</h1>
     <p style="font-size:13px; color:var(--text-3); margin-top:4px;" id="lastUpdated"></p>
   </div>
-  <a href="{{ url_for('vote.ballot') }}" class="btn btn-outline btn-sm">← กลับลงคะแนน</a>
+  {% if session.get('vote_member_id') %}
+    <a href="{{ url_for('vote.ballot') }}" class="btn btn-outline btn-sm">← กลับลงคะแนน</a>
+  {% else %}
+    <a href="{{ url_for('vote.request_otp') }}" class="btn btn-outline btn-sm">ลงคะแนน →</a>
+  {% endif %}
 </div>
+
+{% if not data %}
+<div class="empty-state" style="padding:4rem 1.5rem;">
+  <div class="empty-icon">🗳️</div>
+  <h2 style="font-size:15px; font-weight:500; color:var(--text-2); margin-bottom:6px;">ยังไม่มีวาระการเลือกตั้ง</h2>
+  <p style="font-size:13px;">Admin ยังไม่ได้สร้างหรือเปิดวาระใดๆ</p>
+</div>
+{% endif %}
 
 {% for item in data %}
 {% set e = item.election %}
@@ -105,7 +117,8 @@
 
 {% block scripts %}
 <script>
-const OPEN_EXISTS = {{ (data | selectattr('election.status', 'equalto', 'open') | list | length) > 0 }};
+{% set open_count = data | selectattr('election.status', 'equalto', 'open') | list | length %}
+const OPEN_EXISTS = {{ (open_count > 0) | tojson }};
 
 async function fetchResults() {
   try {

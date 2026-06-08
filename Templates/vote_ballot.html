@@ -2,89 +2,48 @@
 {% block title %}ลงคะแนน — Election Web{% endblock %}
 
 {% block content %}
-<div style="display:flex; gap:24px; align-items:flex-start; max-width:960px; margin:0 auto;">
+<div class="mb-3">
+  <h1>ลงคะแนนเลือกตั้ง</h1>
+  <p style="font-size:13px; color:var(--text-3); margin-top:4px;">
+    ลงคะแนนในนาม <strong>{{ member.full_name }}</strong>
+  </p>
+</div>
 
-  {# ── Sidebar ── #}
-  <aside style="width:220px; flex-shrink:0; position:sticky; top:calc(var(--nav-h) + 1.5rem);">
+{% if elections %}
+  <div class="grid-2">
+    {% for e in elections %}
     <div class="card">
-      <div class="card-header" style="padding:12px 14px;">
-        <span style="font-size:12px; font-weight:500; color:var(--text-2);">เมนูลงคะแนน</span>
-      </div>
-      <div style="padding:8px 0;">
-        {% for e in elections %}
-        <a href="{{ url_for('vote.ballot_detail', election_type=e.type) }}"
-           style="display:flex; align-items:center; justify-content:space-between;
-                  padding:10px 16px; font-size:13px; color:var(--text-1); text-decoration:none;
-                  border-left:3px solid transparent;
-                  {% if e.type in voted_types %}border-left-color:var(--green); background:var(--green-bg);{% endif %}"
-           onmouseover="this.style.background='var(--surface)'"
-           onmouseout="this.style.background='{% if e.type in voted_types %}var(--green-bg){% else %}transparent{% endif %}'">
-          <span>{{ e.type_label }}</span>
-          {% if e.type in voted_types %}
-            <svg style="width:14px;height:14px;fill:none;stroke:var(--green);stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
-          {% endif %}
-        </a>
-        {% endfor %}
-
-        {% if not elections %}
-          <p style="padding:12px 16px; font-size:12px; color:var(--text-3);">ยังไม่มีวาระที่เปิด</p>
+      <div class="card-header">
+        <div>
+          <div style="font-weight:500; font-size:14px; margin-bottom:4px;">{{ e.type_label }}</div>
+          <span class="badge badge-open">
+            <span class="status-dot open"></span>กำลังเปิด
+          </span>
+        </div>
+        {% if e.type in voted_types %}
+          <span class="badge" style="background:var(--green-bg); color:var(--green);">
+            <svg style="width:10px;height:10px;fill:none;stroke:currentColor;stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+            ลงคะแนนแล้ว
+          </span>
         {% endif %}
       </div>
-    </div>
-
-    <div class="card mt-2" style="margin-top:12px;">
-      <div class="card-body" style="padding:12px 14px;">
-        <div style="font-size:11px; color:var(--text-3); margin-bottom:4px;">ลงคะแนนในนาม</div>
-        <div style="font-size:13px; font-weight:500;">{{ member.full_name }}</div>
+      <div class="card-footer">
+        {% if e.type in voted_types %}
+          <span class="btn btn-success btn-sm" style="cursor:default;">ใช้สิทธิ์แล้ว</span>
+        {% else %}
+          <a href="{{ url_for('vote.ballot_detail', election_type=e.type) }}" class="btn btn-sky btn-sm">
+            ลงคะแนน →
+          </a>
+        {% endif %}
+        <a href="{{ url_for('vote.results') }}" class="btn btn-ghost btn-sm">ดูผลคะแนน</a>
       </div>
     </div>
-  </aside>
-
-  {# ── Main ── #}
-  <main style="flex:1; min-width:0;">
-    <div class="mb-3">
-      <h1>ลงคะแนนเลือกตั้ง</h1>
-      <p style="font-size:13px; color:var(--text-3); margin-top:4px;">เลือกวาระจากเมนูด้านซ้าย</p>
-    </div>
-
-    {% if elections %}
-      <div class="grid-2">
-        {% for e in elections %}
-        <div class="card">
-          <div class="card-header">
-            <div>
-              <div style="font-weight:500; font-size:13px; margin-bottom:4px;">{{ e.type_label }}</div>
-              <span class="badge badge-open">
-                <span class="status-dot open"></span>กำลังเปิด
-              </span>
-            </div>
-            {% if e.type in voted_types %}
-              <span class="badge" style="background:var(--green-bg); color:var(--green);">
-                <svg style="width:10px;height:10px;fill:none;stroke:currentColor;stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
-                ลงคะแนนแล้ว
-              </span>
-            {% endif %}
-          </div>
-          <div class="card-footer">
-            {% if e.type in voted_types %}
-              <span class="btn btn-success btn-sm" style="cursor:default;">ใช้สิทธิ์แล้ว</span>
-            {% else %}
-              <a href="{{ url_for('vote.ballot_detail', election_type=e.type) }}" class="btn btn-sky btn-sm">
-                ลงคะแนน →
-              </a>
-            {% endif %}
-            <a href="{{ url_for('vote.results') }}" class="btn btn-ghost btn-sm">ดูผลคะแนน</a>
-          </div>
-        </div>
-        {% endfor %}
-      </div>
-    {% else %}
-      <div class="empty-state">
-        <div class="empty-icon">🗳️</div>
-        <p>ยังไม่มีวาระที่เปิดให้ลงคะแนน</p>
-      </div>
-    {% endif %}
-  </main>
-
-</div>
+    {% endfor %}
+  </div>
+{% else %}
+  <div class="empty-state">
+    <div class="empty-icon">🗳️</div>
+    <p>ยังไม่มีวาระที่เปิดให้ลงคะแนน</p>
+  </div>
+{% endif %}
 {% endblock %}

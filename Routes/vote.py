@@ -95,10 +95,26 @@ def request_otp():
             flash("กรุณากรอก Email", "danger")
             return render_template("vote_request_otp.html")
 
+        # ค้นหาจาก members ก่อน ถ้าไม่เจอให้ลอง users แล้ว auto-create
         member = Member.get_by_email(email)
         if not member:
-            flash("ไม่พบข้อมูลสมาชิกในระบบ", "danger")
-            return render_template("vote_request_otp.html")
+            from models.user import User
+            user = User.get_by_email(email)
+            if user:
+                from db import get_db
+                conn = get_db()
+                cur  = conn.cursor(dictionary=True)
+                cur.execute(
+                    "INSERT INTO members (full_name, email, verified) VALUES (%s, %s, TRUE)",
+                    (user.full_name, user.email),
+                )
+                conn.commit()
+                member_id = cur.lastrowid
+                cur.close()
+                member = Member.get_by_id(member_id)
+            else:
+                flash("ไม่พบข้อมูลในระบบ กรุณาติดต่อเจ้าหน้าที่", "danger")
+                return render_template("vote_request_otp.html")
 
         if not member.verified:
             flash("กรุณายืนยันตัวตนก่อน (ขั้นที่ 1) แล้วจึงลงคะแนน", "warning")
