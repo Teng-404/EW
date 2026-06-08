@@ -2,7 +2,7 @@
 {% block title %}ยืนยันตัวตน — Election Web{% endblock %}
 
 {% block content %}
-<div class="auth-page" style="padding-top:0; min-height:calc(100vh - var(--nav-h));">
+<div class="auth-page-inner">
   <div class="auth-card">
 
     <div class="auth-icon gold">
@@ -10,7 +10,7 @@
     </div>
 
     <div class="auth-title">ยืนยันตัวตน</div>
-    <div class="auth-sub">ขั้นที่ 1 — กรอก Email ที่ลงทะเบียนไว้</div>
+    <div class="auth-sub">กรอก Email ที่ลงทะเบียนไว้</div>
 
     {% if disabled %}
       <div class="flash warning" role="alert" style="margin-bottom:16px;">

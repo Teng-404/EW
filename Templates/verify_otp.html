@@ -2,7 +2,7 @@
 {% block title %}กรอก OTP — Election Web{% endblock %}
 
 {% block content %}
-<div class="auth-page" style="padding-top:0; min-height:calc(100vh - var(--nav-h));">
+<div class="auth-page-inner">
   <div class="auth-card">
 
     <div class="auth-icon">
@@ -49,17 +49,15 @@
 
 {% block scripts %}
 <script>
-const digits  = document.querySelectorAll('.otp-digit');
-const hidden  = document.getElementById('otpHidden');
-const btn     = document.getElementById('submitBtn');
-let expire    = Date.now() + 5 * 60 * 1000;
+const digits = document.querySelectorAll('.otp-digit');
+const hidden = document.getElementById('otpHidden');
+const btn    = document.getElementById('submitBtn');
+let expire   = Date.now() + 5 * 60 * 1000;
 
 function updateOtp() {
   const val = [...digits].map(d => d.value).join('');
   hidden.value = val;
-  [...digits].forEach((d, i) => {
-    d.classList.toggle('filled', !!d.value);
-  });
+  [...digits].forEach(d => d.classList.toggle('filled', !!d.value));
   btn.disabled = val.length < 6;
 }
 
@@ -92,7 +90,9 @@ function tick() {
   const left = Math.max(0, Math.floor((expire - Date.now()) / 1000));
   const m = String(Math.floor(left / 60)).padStart(2, '0');
   const s = String(left % 60).padStart(2, '0');
-  cd.innerHTML = left > 0 ? `หมดอายุใน <strong>${m}:${s}</strong>` : '<span style="color:var(--red)">OTP หมดอายุแล้ว กรุณาขอใหม่</span>';
+  cd.innerHTML = left > 0
+    ? `หมดอายุใน <strong>${m}:${s}</strong>`
+    : '<span style="color:var(--red)">OTP หมดอายุแล้ว กรุณาขอใหม่</span>';
   if (left > 0) setTimeout(tick, 1000);
 }
 tick();

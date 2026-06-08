@@ -8,51 +8,141 @@
     Dashboard
   </a>
   <h1>นำเข้าสมาชิกจาก Excel</h1>
-  <p style="font-size:13px; color:var(--text-3); margin-top:4px;">สมาชิกในระบบปัจจุบัน {{ total }} คน</p>
+  <p style="font-size:13px; color:var(--text-3); margin-top:4px;">สมาชิกในระบบปัจจุบัน <strong>{{ total }}</strong> คน</p>
 </div>
 
-<div class="card mb-3" style="max-width:520px;">
-  <div class="card-header">
-    <span style="font-size:13px; font-weight:500;">อัปโหลด Excel</span>
-  </div>
-  <div class="card-body">
-    <form method="POST" action="{{ url_for('admin.import_members') }}" enctype="multipart/form-data">
-      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+<div class="grid-2" style="align-items:start; gap:20px;">
 
-      <div class="form-group">
-        <label>ไฟล์ Excel (.xlsx / .xls)</label>
-        <input type="file" name="file" class="form-control" accept=".xlsx,.xls" required />
-        <div class="form-hint">คอลัมน์ A = ชื่อ-นามสกุล, คอลัมน์ B = Email (row 1 เป็น header)</div>
+  {# ── ซ้าย: Form อัปโหลด ── #}
+  <div class="card">
+    <div class="card-header">
+      <div style="display:flex; align-items:center; gap:8px;">
+        <svg style="width:16px;height:16px;fill:none;stroke:var(--sky);stroke-width:2;stroke-linecap:round;stroke-linejoin:round" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+        <span style="font-size:13px; font-weight:500;">อัปโหลด Excel</span>
       </div>
+    </div>
+    <div class="card-body">
+      <form method="POST" action="{{ url_for('admin.import_members') }}" enctype="multipart/form-data" id="importForm">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
 
-      {# Info box #}
-      <div style="background:var(--sky-light); border:1px solid rgba(59,125,216,.2); border-radius:var(--radius); padding:10px 14px; font-size:12px; color:var(--navy-mid); margin-bottom:14px;">
-        <div style="font-weight:500; margin-bottom:4px;">พฤติกรรมการนำเข้า (Upsert)</div>
-        <ul style="margin:0; padding-left:16px; line-height:1.8;">
-          <li>ชื่อใหม่ที่ไม่มีในระบบ → <strong>เพิ่มใหม่</strong></li>
-          <li>ชื่อที่มีอยู่แล้ว ยังไม่ยืนยันตัวตน → <strong>อัปเดต Email</strong></li>
-          <li>ชื่อที่ยืนยันตัวตนแล้ว → <strong>ข้าม</strong> (ไม่แตะข้อมูล)</li>
-        </ul>
+        {# Custom file input #}
+        <div class="form-group">
+          <label>ไฟล์ Excel (.xlsx / .xls)</label>
+          <div id="dropZone" style="
+            border: 2px dashed var(--border);
+            border-radius: var(--radius-lg);
+            padding: 28px 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: border-color var(--t), background var(--t);
+            background: var(--surface);
+          " onclick="document.getElementById('fileInput').click()"
+             ondragover="event.preventDefault(); this.style.borderColor='var(--sky)'; this.style.background='var(--sky-light)'"
+             ondragleave="this.style.borderColor='var(--border)'; this.style.background='var(--surface)'"
+             ondrop="handleDrop(event)">
+            <svg style="width:32px;height:32px;fill:none;stroke:var(--text-3);stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round;margin-bottom:8px" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="12" x2="12" y2="18"/><line x1="9" y1="15" x2="15" y2="15"/></svg>
+            <div id="dropLabel" style="font-size:13px; color:var(--text-2); font-weight:500;">คลิกหรือลากไฟล์มาวางที่นี่</div>
+            <div style="font-size:11px; color:var(--text-3); margin-top:4px;">.xlsx หรือ .xls เท่านั้น</div>
+          </div>
+          <input type="file" id="fileInput" name="file" accept=".xlsx,.xls" required style="display:none"
+                 onchange="updateLabel(this)" />
+          <div class="form-hint" style="margin-top:6px;">คอลัมน์ A = ชื่อ-นามสกุล, คอลัมน์ B = Email (row 1 เป็น header)</div>
+        </div>
+
+        {# Info box #}
+        <div style="background:var(--sky-light); border:1px solid rgba(59,125,216,.2); border-radius:var(--radius); padding:12px 14px; font-size:12px; color:var(--navy-mid); margin-bottom:16px;">
+          <div style="font-weight:600; margin-bottom:6px; display:flex; align-items:center; gap:6px;">
+            <svg style="width:13px;height:13px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+            พฤติกรรมการนำเข้า (Upsert)
+          </div>
+          <ul style="margin:0; padding-left:16px; line-height:2;">
+            <li>ชื่อใหม่ที่ไม่มีในระบบ → <strong>เพิ่มใหม่</strong></li>
+            <li>ชื่อที่มีอยู่แล้ว ยังไม่ยืนยันตัวตน → <strong>อัปเดต Email</strong></li>
+            <li>ชื่อที่ยืนยันตัวตนแล้ว → <strong>ข้าม</strong> (ไม่แตะข้อมูล)</li>
+          </ul>
+        </div>
+
+        <button type="submit" class="btn btn-primary btn-block btn-lg">
+          <svg style="width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+          นำเข้าข้อมูล
+        </button>
+      </form>
+    </div>
+  </div>
+
+  {# ── ขวา: รูปแบบไฟล์ + สถานะ ── #}
+  <div style="display:flex; flex-direction:column; gap:16px;">
+
+    {# รูปแบบไฟล์ #}
+    <div class="card">
+      <div class="card-header">
+        <div style="display:flex; align-items:center; gap:8px;">
+          <svg style="width:16px;height:16px;fill:none;stroke:var(--green);stroke-width:2;stroke-linecap:round;stroke-linejoin:round" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+          <span style="font-size:13px; font-weight:500;">รูปแบบไฟล์ Excel</span>
+        </div>
       </div>
+      <div class="card-body" style="padding:0;">
+        <table class="table" style="font-size:12px;">
+          <thead>
+            <tr><th>A — ชื่อ-นามสกุล</th><th>B — Email</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>สมชาย ใจดี</td><td>somchai@example.com</td></tr>
+            <tr><td>สมหญิง รักดี</td><td>somying@example.com</td></tr>
+            <tr><td>...</td><td>...</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="card-footer" style="font-size:11px; color:var(--text-3);">
+        Row 1 เป็น header — ระบบจะข้ามแถวแรกอัตโนมัติ
+      </div>
+    </div>
 
-      <button type="submit" class="btn btn-primary btn-block">นำเข้าข้อมูล</button>
-    </form>
+    {# สถานะสมาชิก #}
+    <div class="card">
+      <div class="card-header">
+        <span style="font-size:13px; font-weight:500;">สถานะระบบ</span>
+      </div>
+      <div class="card-body">
+        <div style="display:flex; align-items:center; justify-content:space-between; padding:8px 0; border-bottom:1px solid var(--border);">
+          <span style="font-size:12px; color:var(--text-2);">สมาชิกทั้งหมด</span>
+          <span style="font-size:18px; font-weight:300; color:var(--text-1);">{{ total }}</span>
+        </div>
+        <div style="padding-top:12px;">
+          <a href="{{ url_for('admin.dashboard') }}" class="btn btn-ghost btn-sm btn-block">
+            ดูภาพรวม Dashboard →
+          </a>
+        </div>
+      </div>
+    </div>
+
   </div>
 </div>
 
-{# Template download hint #}
-<div class="card" style="max-width:520px;">
-  <div class="card-body" style="font-size:12px; color:var(--text-2);">
-    <div style="font-weight:500; margin-bottom:6px;">รูปแบบไฟล์ Excel</div>
-    <table class="table" style="font-size:12px;">
-      <thead>
-        <tr><th>A — ชื่อ-นามสกุล</th><th>B — Email</th></tr>
-      </thead>
-      <tbody>
-        <tr><td>สมชาย ใจดี</td><td>somchai@example.com</td></tr>
-        <tr><td>สมหญิง รักดี</td><td>somying@example.com</td></tr>
-      </tbody>
-    </table>
-  </div>
-</div>
+{% block scripts %}
+<script>
+function updateLabel(input) {
+  const label = document.getElementById('dropLabel');
+  if (input.files && input.files[0]) {
+    label.textContent = input.files[0].name;
+    label.style.color = 'var(--navy-mid)';
+    document.getElementById('dropZone').style.borderColor = 'var(--sky)';
+    document.getElementById('dropZone').style.background = 'var(--sky-light)';
+  }
+}
+
+function handleDrop(e) {
+  e.preventDefault();
+  const file = e.dataTransfer.files[0];
+  if (!file) return;
+  document.getElementById('dropZone').style.borderColor = 'var(--border)';
+  document.getElementById('dropZone').style.background = 'var(--surface)';
+  const input = document.getElementById('fileInput');
+  const dt = new DataTransfer();
+  dt.items.add(file);
+  input.files = dt.files;
+  updateLabel(input);
+}
+</script>
+{% endblock %}
 {% endblock %}

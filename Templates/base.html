@@ -24,35 +24,86 @@
       </a>
 
       <ul class="navbar-nav">
-        <li><a href="{{ url_for('vote.index') }}"          class="nav-link">หน้าแรก</a></li>
-        <li><a href="{{ url_for('candidates.list_all') }}" class="nav-link">ผู้สมัคร</a></li>
-        <li><a href="{{ url_for('vote.results') }}"        class="nav-link">ผลคะแนน</a></li>
-
-        {# ── ปุ่มสำหรับสมาชิก (session-based ไม่ใช่ Flask-Login) ── #}
         {% if session.get('vote_member_id') %}
           <li>
-            <a href="{{ url_for('vote.ballot') }}" class="nav-link" style="color:#fff;">
-              ลงคะแนน <span class="nav-badge" style="background:var(--green);">●</span>
+            <a href="{{ url_for('vote.index') }}" class="nav-link nav-link-vote {% if request.endpoint == 'vote.index' %}active{% endif %}">
+              หน้าแรก
+              <span class="nav-badge nav-badge-live">● Live</span>
             </a>
           </li>
         {% else %}
-          <li><a href="{{ url_for('verify.verify_identity') }}" class="nav-link">ยืนยันตัวตน</a></li>
-          <li><a href="{{ url_for('vote.request_otp') }}"       class="nav-link">ลงคะแนน</a></li>
+          <li><a href="{{ url_for('vote.index') }}" class="nav-link {% if request.endpoint == 'vote.index' %}active{% endif %}">หน้าแรก</a></li>
         {% endif %}
+        <li><a href="{{ url_for('candidates.list_all') }}" class="nav-link {% if request.endpoint == 'candidates.list_all' %}active{% endif %}">ผู้สมัคร</a></li>
+        <li><a href="{{ url_for('vote.results') }}"        class="nav-link {% if request.endpoint == 'vote.results' %}active{% endif %}">ผลคะแนน</a></li>
 
-        {# ── Admin (Flask-Login) ── #}
+
+
+        {# ── Admin dropdown (Flask-Login) ── #}
         {% if current_user.is_authenticated %}
-          {% if current_user.is_admin %}
-            <li>
-              <a href="{{ url_for('admin.dashboard') }}" class="nav-link">
-                Admin <span class="nav-badge">A</span>
-              </a>
-            </li>
-          {% endif %}
-          <li><a href="{{ url_for('auth.logout') }}" class="nav-link">ออกจากระบบ</a></li>
-          <li><span class="nav-user">{{ current_user.full_name.split()[0] }}</span></li>
+          <li class="nav-dropdown" id="adminDropdown">
+            <button class="nav-avatar-btn" onclick="toggleDropdown()" aria-expanded="false" aria-haspopup="true">
+              <span class="nav-avatar">{{ current_user.full_name[0] | upper }}</span>
+              <span class="nav-avatar-name">{{ current_user.full_name.split()[0] }}</span>
+              <svg class="nav-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="6 9 12 15 18 9"/>
+              </svg>
+            </button>
+
+            <div class="nav-dropdown-menu" id="adminMenu" role="menu">
+              {# Header #}
+              <div class="nav-dropdown-header">
+                <div class="nav-dropdown-avatar">{{ current_user.full_name[0] | upper }}</div>
+                <div>
+                  <div class="nav-dropdown-name">{{ current_user.full_name }}</div>
+                  <div class="nav-dropdown-role">
+                    {% if current_user.is_admin %}
+                      <span class="badge badge-admin" style="font-size:10px; padding:2px 8px;">Admin</span>
+                    {% else %}
+                      <span style="font-size:11px; color:var(--text-3);">ผู้ดูแลระบบ</span>
+                    {% endif %}
+                  </div>
+                </div>
+              </div>
+              <div class="nav-dropdown-divider"></div>
+
+              {# Menu items #}
+              {% if current_user.is_admin %}
+                <a href="{{ url_for('admin.dashboard') }}" class="nav-dropdown-item" role="menuitem">
+                  <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+                  Dashboard
+                </a>
+                <a href="{{ url_for('admin.manage_users') }}" class="nav-dropdown-item" role="menuitem">
+                  <svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                  จัดการผู้ใช้งาน
+                </a>
+                <a href="{{ url_for('admin.logs') }}" class="nav-dropdown-item" role="menuitem">
+                  <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+                  Audit Log
+                </a>
+              {% endif %}
+
+              <div class="nav-dropdown-divider"></div>
+
+              <div class="nav-dropdown-footer">
+                <a href="{{ url_for('auth.login') }}" class="nav-dropdown-btn nav-dropdown-btn-ghost">
+                  <svg viewBox="0 0 24 24"><rect x="3" y="11" width="11" height="2"/><path d="M9 7l-4 4 4 4"/><path d="M16 3h4a1 1 0 0 1 1 1v16a1 1 0 0 1-1 1h-4"/></svg>
+                  เปลี่ยนบัญชี
+                </a>
+                <a href="{{ url_for('auth.logout') }}" class="nav-dropdown-btn nav-dropdown-btn-logout">
+                  <svg viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+                  ออกจากระบบ
+                </a>
+              </div>
+            </div>
+          </li>
         {% else %}
-          <li><a href="{{ url_for('auth.login') }}" class="nav-link" style="opacity:.5; font-size:11px;">Admin</a></li>
+          <li>
+            <a href="{{ url_for('auth.login') }}" class="nav-link nav-link-login">
+              <svg style="width:13px;height:13px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;vertical-align:-1px" viewBox="0 0 24 24"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>
+              เข้าสู่ระบบ
+            </a>
+          </li>
         {% endif %}
       </ul>
     </div>
@@ -69,36 +120,54 @@
             {% elif category == 'danger' %}
               <circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/>
             {% elif category == 'warning' %}
-              <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+              <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
             {% else %}
               <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
             {% endif %}
           </svg>
           <span class="flash-body">{{ message }}</span>
-          <button class="flash-close" onclick="this.parentElement.remove()" aria-label="ปิด">✕</button>
+          <button class="flash-close" onclick="this.closest('.flash').remove()">✕</button>
         </div>
       {% endfor %}
     {% endwith %}
   </div>
 
-  {# ── Main Content ── #}
-  <main class="page-content">
+  {# ── Page Content ── #}
+  <div class="page-content">
     <div class="container">
       {% block content %}{% endblock %}
     </div>
-  </main>
+  </div>
 
-  {# ── Scripts ── #}
+  {# ── Dropdown close on outside click ── #}
   <script>
+    function toggleDropdown() {
+      const menu   = document.getElementById('adminMenu');
+      const btn    = document.querySelector('.nav-avatar-btn');
+      const isOpen = menu.classList.contains('show');
+      menu.classList.toggle('show');
+      btn.setAttribute('aria-expanded', String(!isOpen));
+    }
+
+    document.addEventListener('click', function(e) {
+      const dropdown = document.getElementById('adminDropdown');
+      if (dropdown && !dropdown.contains(e.target)) {
+        document.getElementById('adminMenu').classList.remove('show');
+        const btn = document.querySelector('.nav-avatar-btn');
+        if (btn) btn.setAttribute('aria-expanded', 'false');
+      }
+    });
+
+    // Auto-dismiss flash after 4s
     setTimeout(() => {
-      document.querySelectorAll('.flash').forEach(el => {
-        el.style.transition = 'opacity .4s, transform .4s';
-        el.style.opacity = '0';
-        el.style.transform = 'translateX(20px)';
-        setTimeout(() => el.remove(), 400);
+      document.querySelectorAll('.flash').forEach(f => {
+        f.style.transition = 'opacity .4s';
+        f.style.opacity = '0';
+        setTimeout(() => f.remove(), 400);
       });
-    }, 5000);
+    }, 4000);
   </script>
+
   {% block scripts %}{% endblock %}
 </body>
 </html>
