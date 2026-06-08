@@ -208,7 +208,7 @@ CREATE TABLE access_logs (
 | GET/POST | `/vote` | เข้าสู่ระบบเลือกตั้ง (ขั้นที่ 2) | — |
 | POST | `/vote/request-otp` | ขอ OTP สำหรับลงคะแนน | — |
 | GET/POST | `/vote/otp` | กรอก OTP ลงคะแนน | — |
-| GET | `/vote/ballot` | หน้าหลักลงคะแนน (เมนูซ้าย) | ✅ OTP |
+| GET | `/vote/ballot` | หน้าหลักลงคะแนน | ✅ OTP |
 | GET | `/vote/ballot/<type>` | รายชื่อผู้สมัครตามประเภท | ✅ OTP |
 | POST | `/vote/ballot/<type>/submit` | บันทึกคะแนน | ✅ OTP |
 | GET | `/results` | ผลคะแนน Realtime (ทุกประเภท) | — |
