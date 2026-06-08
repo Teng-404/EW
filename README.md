@@ -224,7 +224,7 @@ CREATE TABLE access_logs (
 | POST | `/admin/elections/<id>/candidates/add` | เพิ่มผู้สมัคร | ✅ admin |
 | POST | `/admin/candidates/<id>/edit` | แก้ไขผู้สมัคร | ✅ admin |
 | POST | `/admin/candidates/<id>/delete` | ลบผู้สมัคร | ✅ admin |
-| GET/POST | `/admin/members/import` | นำเข้า Excel สมาชิกสหกรณ์ (ลบข้อมูลเก่าก่อน) | ✅ admin |
+| GET/POST | `/admin/members/import` | นำเข้า Excel สมาชิก (ลบข้อมูลเก่าก่อน) | ✅ admin |
 | GET | `/admin/system` | กำหนดการเข้าใช้งาน (เปิด/ระงับแต่ละระบบ) | ✅ admin |
 | GET | `/admin/logs` | ดู Log การใช้งาน | ✅ admin |
 | GET | `/admin/logs/export` | export Log เป็น PDF/Excel | ✅ admin |
