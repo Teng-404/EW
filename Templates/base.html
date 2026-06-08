@@ -26,7 +26,21 @@
       <ul class="navbar-nav">
         <li><a href="{{ url_for('vote.index') }}"          class="nav-link">หน้าแรก</a></li>
         <li><a href="{{ url_for('candidates.list_all') }}" class="nav-link">ผู้สมัคร</a></li>
+        <li><a href="{{ url_for('vote.results') }}"        class="nav-link">ผลคะแนน</a></li>
 
+        {# ── ปุ่มสำหรับสมาชิก (session-based ไม่ใช่ Flask-Login) ── #}
+        {% if session.get('vote_member_id') %}
+          <li>
+            <a href="{{ url_for('vote.ballot') }}" class="nav-link" style="color:#fff;">
+              ลงคะแนน <span class="nav-badge" style="background:var(--green);">●</span>
+            </a>
+          </li>
+        {% else %}
+          <li><a href="{{ url_for('verify.verify_identity') }}" class="nav-link">ยืนยันตัวตน</a></li>
+          <li><a href="{{ url_for('vote.request_otp') }}"       class="nav-link">ลงคะแนน</a></li>
+        {% endif %}
+
+        {# ── Admin (Flask-Login) ── #}
         {% if current_user.is_authenticated %}
           {% if current_user.is_admin %}
             <li>
@@ -38,8 +52,7 @@
           <li><a href="{{ url_for('auth.logout') }}" class="nav-link">ออกจากระบบ</a></li>
           <li><span class="nav-user">{{ current_user.full_name.split()[0] }}</span></li>
         {% else %}
-          <li><a href="{{ url_for('auth.login') }}"    class="nav-link">เข้าสู่ระบบ</a></li>
-          <li><a href="{{ url_for('auth.register') }}" class="nav-link">สมัครสมาชิก</a></li>
+          <li><a href="{{ url_for('auth.login') }}" class="nav-link" style="opacity:.5; font-size:11px;">Admin</a></li>
         {% endif %}
       </ul>
     </div>

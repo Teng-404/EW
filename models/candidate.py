@@ -1,11 +1,12 @@
 """
-models/candidate.py — Candidate model
+models/candidate.py — Candidate model  (README v2 patch)
 
-ผู้สมัครแต่ละคนผูกกับวาระ (election_id)
+เปลี่ยนจากเดิม:
+  - create()  — party และ bio มี default "" ทำให้เรียกแบบ keyword-only ได้
+  - update()  — รับ photo_url เพิ่ม, party และ bio optional (default None = ไม่เปลี่ยน)
 """
 
 from __future__ import annotations
-
 from db import get_db
 
 
@@ -19,10 +20,10 @@ class Candidate:
         self.photo_url   = row.get("photo_url")
         self.number      = row.get("number")
         self.created_at  = row.get("created_at")
-        # vote_count อาจถูก join มาจาก query พิเศษ
         self.vote_count  = row.get("vote_count", 0)
 
     # ── Queries ────────────────────────────────────────────
+
     @classmethod
     def get_by_id(cls, candidate_id: int) -> "Candidate | None":
         conn = get_db()
@@ -34,7 +35,6 @@ class Candidate:
 
     @classmethod
     def get_by_election(cls, election_id: int) -> list["Candidate"]:
-        """คืนผู้สมัครทั้งหมดในวาระ เรียงตามหมายเลข"""
         conn = get_db()
         cur  = conn.cursor(dictionary=True)
         cur.execute(
@@ -47,7 +47,6 @@ class Candidate:
 
     @classmethod
     def get_by_election_with_votes(cls, election_id: int) -> list["Candidate"]:
-        """คืนผู้สมัครพร้อม vote_count — ใช้แสดงผลคะแนน"""
         conn = get_db()
         cur  = conn.cursor(dictionary=True)
         cur.execute(
@@ -67,6 +66,8 @@ class Candidate:
         cur.close()
         return [cls(r) for r in rows]
 
+    # ── Mutations ──────────────────────────────────────────
+
     @classmethod
     def create(
         cls,
@@ -84,30 +85,48 @@ class Candidate:
             INSERT INTO candidates (election_id, name, party, bio, photo_url, number)
             VALUES (%s, %s, %s, %s, %s, %s)
             """,
-            (election_id, name, party, bio, photo_url, number),
+            (election_id, name, party or None, bio or None, photo_url or None, number),
         )
         conn.commit()
         cid = cur.lastrowid
         cur.close()
         return cls.get_by_id(cid)
 
-    def update(self, name: str, party: str, bio: str, number: int = None) -> None:
+    def update(
+        self,
+        name: str,
+        party: str = None,
+        bio: str = None,
+        photo_url: str = None,
+        number: int = None,
+    ) -> None:
+        """
+        อัปเดตผู้สมัคร — ถ้า argument เป็น None จะคง value เดิมไว้
+        เรียกได้ทั้ง update(name, party, bio, number)  ← backward compat
+        และ update(name, photo_url=url, number=n)       ← รูปแบบใหม่
+        """
+        new_party     = party     if party     is not None else self.party
+        new_bio       = bio       if bio       is not None else self.bio
+        new_photo_url = photo_url if photo_url is not None else self.photo_url
+        new_number    = number    if number    is not None else self.number
+
         conn = get_db()
         cur  = conn.cursor()
         cur.execute(
             """
             UPDATE candidates
-            SET name = %s, party = %s, bio = %s, number = %s
-            WHERE id = %s
+            SET    name = %s, party = %s, bio = %s, photo_url = %s, number = %s
+            WHERE  id = %s
             """,
-            (name, party, bio, number, self.id),
+            (name, new_party, new_bio, new_photo_url, new_number, self.id),
         )
         conn.commit()
         cur.close()
-        self.name   = name
-        self.party  = party
-        self.bio    = bio
-        self.number = number
+        self.name      = name
+        self.party     = new_party
+        self.bio       = new_bio
+        self.photo_url = new_photo_url
+        self.number    = new_number
 
     def delete(self) -> None:
         conn = get_db()

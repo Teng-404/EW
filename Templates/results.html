@@ -105,7 +105,7 @@
 
 {% block scripts %}
 <script>
-const OPEN_EXISTS = {{ data | selectattr('election.status', 'equalto', 'open') | list | length > 0 | tojson }};
+const OPEN_EXISTS = {{ (data | selectattr('election.status', 'equalto', 'open') | list | length) > 0 }};
 
 async function fetchResults() {
   try {

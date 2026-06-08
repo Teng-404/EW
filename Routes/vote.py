@@ -29,6 +29,15 @@ from models.vote           import OTP, Vote
 
 vote_bp = Blueprint("vote", __name__)
 
+
+# ── หน้าแรก (compat — base.html และ auth.py ยัง url_for vote.index) ──
+
+@vote_bp.route("/")
+def index():
+    elections = Election.get_all()
+    return render_template("index.html", elections=elections)
+
+
 # ── Helpers ────────────────────────────────────────────────
 
 def _client_ip() -> str:

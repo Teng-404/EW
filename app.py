@@ -45,11 +45,13 @@ def _register_blueprints(app: Flask) -> None:
     from routes.auth     import auth_bp
     from routes.verify   import verify_bp      # ← ใหม่ (ขั้นที่ 1)
     from routes.vote     import vote_bp
+    from routes.candidates import candidates_bp
     from routes.admin    import admin_bp
 
     app.register_blueprint(auth_bp)
     app.register_blueprint(verify_bp)          # ← /verify, /verify/otp
     app.register_blueprint(vote_bp)            # ← /vote/*, /results/*
+    app.register_blueprint(candidates_bp)      # ← /candidates/*
     app.register_blueprint(admin_bp, url_prefix="/admin")
 
 

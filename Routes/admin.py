@@ -215,12 +215,13 @@ def edit_candidate(candidate_id: int):
     candidate = Candidate.get_by_id(candidate_id)
     if not candidate:
         abort(404)
-    name   = request.form.get("name", "").strip()
-    number = request.form.get("number", type=int)
+    name      = request.form.get("name", "").strip()
+    number    = request.form.get("number", type=int)
+    photo_url = request.form.get("photo_url", "").strip()
     if not name:
         flash("กรุณาระบุชื่อผู้สมัคร", "danger")
         return redirect(url_for("admin.manage_candidates", election_id=candidate.election_id))
-    candidate.update(name, number=number)
+    candidate.update(name, photo_url=photo_url, number=number)
     flash("แก้ไขข้อมูลผู้สมัครแล้ว", "success")
     return redirect(url_for("admin.manage_candidates", election_id=candidate.election_id))
 
@@ -372,8 +373,13 @@ def import_members():
                 full_name = str(row[0]).strip()
                 email     = str(row[1]).strip().lower() if len(row) > 1 and row[1] else None
                 rows.append({"full_name": full_name, "email": email})
-            count = Member.replace_all(rows)
-            flash(f"นำเข้าสมาชิกสำเร็จ {count} คน (ลบข้อมูลเก่าก่อน)", "success")
+            result = Member.upsert_all(rows)
+            flash(
+                f"นำเข้าสำเร็จ — เพิ่มใหม่ {result['added']} คน, "
+                f"อัปเดต {result['updated']} คน, "
+                f"ข้าม {result['skipped']} คน (verified แล้ว)",
+                "success",
+            )
         except Exception as e:
             flash(f"เกิดข้อผิดพลาด: {e}", "danger")
         return redirect(url_for("admin.import_members"))

@@ -14,7 +14,7 @@
       <div class="ec-header">
         <div style="flex:1; min-width:0;">
           <div class="ec-title">{{ election.title }}</div>
-          <div style="margin-bottom:{% if election.description %}8px{% else %}0{% endif %}">
+          <div style="margin-bottom:4px;">
             <span class="badge badge-{{ election.status }}">
               <span class="status-dot {{ election.status }}"></span>
               {% if election.status == 'open' %}กำลังเปิด
@@ -22,38 +22,17 @@
               {% else %}ปิดแล้ว{% endif %}
             </span>
           </div>
-          {% if election.description %}
-            <div class="ec-desc">{{ election.description }}</div>
-          {% endif %}
         </div>
-
-        {% if election.id in voted_ids %}
-          <div class="voted-tag">
-            <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
-            ลงคะแนนแล้ว
-          </div>
-        {% endif %}
       </div>
 
       <div class="card-footer">
-        <a href="{{ url_for('vote.results', election_id=election.id) }}" class="btn btn-outline btn-sm">ดูผลคะแนน</a>
+        <a href="{{ url_for('vote.results') }}" class="btn btn-outline btn-sm">ดูผลคะแนน</a>
         <a href="{{ url_for('candidates.by_election', election_id=election.id) }}" class="btn btn-ghost btn-sm">ผู้สมัคร</a>
 
         {% if election.is_open %}
-          {% if not current_user.is_authenticated %}
-            <a href="{{ url_for('auth.login') }}" class="btn btn-sky btn-sm" style="margin-left:auto;">
-              เข้าสู่ระบบเพื่อลงคะแนน →
-            </a>
-          {% elif election.id in voted_ids %}
-            <span class="btn btn-success btn-sm" style="margin-left:auto; cursor:default;">
-              <svg style="width:11px;height:11px;fill:none;stroke:currentColor;stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
-              ใช้สิทธิ์แล้ว
-            </span>
-          {% else %}
-            <a href="{{ url_for('auth.request_otp', election_id=election.id) }}" class="btn btn-sky btn-sm" style="margin-left:auto;">
-              ลงคะแนน →
-            </a>
-          {% endif %}
+          <a href="{{ url_for('vote.request_otp') }}" class="btn btn-sky btn-sm" style="margin-left:auto;">
+            ลงคะแนน →
+          </a>
         {% endif %}
       </div>
     </div>

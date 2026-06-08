@@ -11,11 +11,11 @@ from db import get_db
 
 class Member:
     def __init__(self, row: dict):
-        self.id        = row["id"]
-        self.full_name = row["full_name"]
-        self.email     = row.get("email")        # Email เดิมในระบบ
-        self.email_new = row.get("email_new")    # Email ใหม่ถ้าเปลี่ยนตอนยืนยันตัวตน
-        self.verified  = bool(row.get("verified", False))
+        self.id         = row["id"]
+        self.full_name  = row["full_name"]
+        self.email      = row.get("email")
+        self.email_new  = row.get("email_new")
+        self.verified   = bool(row.get("verified", False))
         self.created_at = row.get("created_at")
 
     @property
@@ -67,7 +67,6 @@ class Member:
 
     @classmethod
     def get_verified(cls) -> list["Member"]:
-        """คืนสมาชิกที่ยืนยันตัวตนแล้ว"""
         conn = get_db()
         cur  = conn.cursor(dictionary=True)
         cur.execute("SELECT * FROM members WHERE verified = TRUE ORDER BY full_name")
@@ -77,7 +76,6 @@ class Member:
 
     @classmethod
     def get_email_changed(cls) -> list["Member"]:
-        """คืนสมาชิกที่เปลี่ยน Email"""
         conn = get_db()
         cur  = conn.cursor(dictionary=True)
         cur.execute(
@@ -99,7 +97,6 @@ class Member:
     # ── Mutations ──────────────────────────────────────────
 
     def mark_verified(self, email_new: str | None = None) -> None:
-        """ทำเครื่องหมายว่าผ่านขั้นยืนยันตัวตนแล้ว และบันทึก email_new ถ้ามี"""
         conn = get_db()
         cur  = conn.cursor()
         cur.execute(
@@ -114,18 +111,57 @@ class Member:
     # ── Bulk import ────────────────────────────────────────
 
     @classmethod
-    def replace_all(cls, rows: list[dict]) -> int:
+    def upsert_all(cls, rows: list[dict]) -> dict:
         """
-        ลบสมาชิกเก่าทั้งหมด แล้ว insert ใหม่จาก list of dict
-        แต่ละ dict ต้องมีคีย์ 'full_name' และ 'email' (optional)
-        คืนจำนวนแถวที่ import
+        Upsert สมาชิกจาก list of dict — ไม่ลบใคร
+        - ค้นหาด้วย full_name เป็น key
+        - ไม่มี       → INSERT ใหม่
+        - มีแต่ยังไม่ verified → UPDATE email
+        - verified แล้ว         → ข้าม (ไม่แตะ)
+        คืน dict { added, updated, skipped }
         """
         conn = get_db()
+        cur  = conn.cursor(dictionary=True)
+        added = updated = skipped = 0
+
+        for r in rows:
+            full_name = str(r.get("full_name", "")).strip()
+            email     = str(r.get("email", "")).strip().lower() or None
+            if not full_name:
+                skipped += 1
+                continue
+
+            cur.execute(
+                "SELECT id, verified FROM members WHERE full_name = %s LIMIT 1",
+                (full_name,),
+            )
+            existing = cur.fetchone()
+
+            if existing is None:
+                cur.execute(
+                    "INSERT INTO members (full_name, email) VALUES (%s, %s)",
+                    (full_name, email),
+                )
+                added += 1
+            elif not existing["verified"]:
+                cur.execute(
+                    "UPDATE members SET email = %s WHERE id = %s",
+                    (email, existing["id"]),
+                )
+                updated += 1
+            else:
+                skipped += 1
+
+        conn.commit()
+        cur.close()
+        return {"added": added, "updated": updated, "skipped": skipped}
+
+    @classmethod
+    def replace_all(cls, rows: list[dict]) -> int:
+        """Legacy — ลบทั้งหมดแล้ว insert ใหม่ (ใช้เฉพาะกรณี reset)"""
+        conn = get_db()
         cur  = conn.cursor()
-
-        # ลบก่อน (CASCADE ไปถึง otps และ access_logs)
         cur.execute("DELETE FROM members")
-
         count = 0
         for r in rows:
             full_name = str(r.get("full_name", "")).strip()
@@ -137,7 +173,6 @@ class Member:
                 (full_name, email),
             )
             count += 1
-
         conn.commit()
         cur.close()
         return count
