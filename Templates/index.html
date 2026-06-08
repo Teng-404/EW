@@ -26,20 +26,19 @@
       </div>
 
       <div class="card-footer">
-        <a href="{{ url_for('vote.results') }}" class="btn btn-outline btn-sm">ดูผลคะแนน</a>
-        <a href="{{ url_for('candidates.by_election', election_id=election.id) }}" class="btn btn-ghost btn-sm">ผู้สมัคร</a>
-
         {% if election.is_open %}
           {% if session.get('vote_member_id') %}
-            <a href="{{ url_for('vote.ballot_detail', election_type=election.type) }}" class="btn btn-sky btn-sm" style="margin-left:auto;">
+            <a href="{{ url_for('vote.ballot_detail', election_type=election.type) }}" class="btn btn-sky btn-sm">
               ลงคะแนน →
             </a>
           {% else %}
-            <a href="{{ url_for('vote.request_otp') }}" class="btn btn-sky btn-sm" style="margin-left:auto;">
+            <a href="{{ url_for('vote.request_otp') }}" class="btn btn-sky btn-sm">
               ลงคะแนน →
             </a>
           {% endif %}
         {% endif %}
+        <a href="{{ url_for('vote.results') }}" class="btn btn-ghost btn-sm">ดูผลคะแนน</a>
+        <a href="{{ url_for('candidates.by_election', election_id=election.id) }}" class="btn btn-ghost btn-sm">ผู้สมัคร</a>
       </div>
     </div>
     {% endfor %}
