@@ -4,7 +4,10 @@
 {% block content %}
 <div class="mb-3">
   <h1>การเลือกตั้งทั้งหมด</h1>
-  <p style="font-size:13px; color:var(--text-3); margin-top:4px;">เลือกวาระที่ต้องการลงคะแนนหรือดูผลคะแนน</p>
+  <p style="font-size:13px; color:var(--text-3); margin-top:4px;">
+    เลือกวาระที่ต้องการลงคะแนนหรือดูผลคะแนน
+    {% if member %}— ลงคะแนนในนาม <strong>{{ member.full_name }}</strong>{% endif %}
+  </p>
 </div>
 
 {% if elections %}
@@ -15,30 +18,53 @@
         <div style="flex:1; min-width:0;">
           <div class="ec-title">{{ election.title }}</div>
           <div style="margin-bottom:4px;">
-            <span class="badge badge-{{ election.status }}">
-              <span class="status-dot {{ election.status }}"></span>
-              {% if election.status == 'open' %}กำลังเปิด
-              {% elif election.status == 'pending' %}รอดำเนินการ
-              {% else %}ปิดแล้ว{% endif %}
-            </span>
+            {% if election.id in voted_ids %}
+              <span class="badge" style="background:var(--green-bg); color:var(--green);">
+                <svg style="width:10px;height:10px;fill:none;stroke:currentColor;stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+                ลงคะแนนแล้ว
+              </span>
+            {% else %}
+              <span class="badge badge-{{ election.status }}">
+                <span class="status-dot {{ election.status }}"></span>
+                {% if election.status == 'open' %}กำลังเปิด
+                {% elif election.status == 'pending' %}รอดำเนินการ
+                {% else %}ปิดแล้ว{% endif %}
+              </span>
+            {% endif %}
           </div>
         </div>
       </div>
 
       <div class="card-footer">
-        {% if election.is_open %}
-          {% if session.get('vote_member_id') %}
-            <a href="{{ url_for('vote.ballot_detail', election_id=election.id) }}" class="btn btn-sky btn-sm">
-              ลงคะแนน →
-            </a>
-          {% else %}
-            <a href="{{ url_for('vote.request_otp') }}" class="btn btn-sky btn-sm">
-              ลงคะแนน →
-            </a>
-          {% endif %}
-        {% endif %}
         <a href="{{ url_for('vote.results') }}" class="btn btn-ghost btn-sm">ดูผลคะแนน</a>
         <a href="{{ url_for('candidates.by_election', election_id=election.id) }}" class="btn btn-ghost btn-sm">ผู้สมัคร</a>
+
+        {# ── ปุ่มลงคะแนน: ดันไปทางขวา (ข้อ 2) + แสดงผลแบบ vote_ballot (ข้อ 4) ── #}
+        {% if election.is_open %}
+          <div style="margin-left:auto;">
+            {% if election.id in voted_ids %}
+              <span class="btn btn-sm" style="cursor:default; background:var(--green-bg); color:var(--green); border-color:transparent;">
+                <svg style="width:11px;height:11px;fill:none;stroke:currentColor;stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+                ใช้สิทธิ์แล้ว
+              </span>
+            {% elif current_user.is_authenticated %}
+              {% if session.get('vote_member_id') %}
+                <a href="{{ url_for('vote.ballot_detail', election_id=election.id) }}" class="btn btn-sky btn-sm">
+                  ลงคะแนน →
+                </a>
+              {% else %}
+                <a href="{{ url_for('vote.request_otp') }}" class="btn btn-sky btn-sm">
+                  ลงคะแนน →
+                </a>
+              {% endif %}
+            {% else %}
+              {# ข้อ 1 — ยังไม่ล็อกอิน เด้งไปหน้าล็อกอินก่อนเสมอ #}
+              <a href="{{ url_for('auth.login', next=url_for('vote.request_otp')) }}" class="btn btn-sky btn-sm">
+                ลงคะแนน →
+              </a>
+            {% endif %}
+          </div>
+        {% endif %}
       </div>
     </div>
     {% endfor %}

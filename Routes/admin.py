@@ -1,5 +1,5 @@
 """
-routes/admin.py — Admin Blueprint  (README v2)
+routes/admin.py — Admin Blueprint  (README v3)
 
 เพิ่มจากเดิม:
   GET/POST  /admin/members/import      — นำเข้า Excel สมาชิก
@@ -9,12 +9,14 @@ routes/admin.py — Admin Blueprint  (README v2)
   GET       /admin/reports             — รายงานทั้งหมด
   GET       /admin/reports/verified/export
   GET       /admin/reports/email-changed/export
-  GET       /admin/reports/votes/export
-  GET       /admin/reports/summary/export
-  GET       /admin/reports/results/export
+  GET       /admin/reports/votes/export        — รายชื่อผู้มาใช้สิทธิ (ตรวจสอบได้)
+  GET       /admin/reports/summary/export      — จำนวนผู้มาใช้สิทธิ
+  GET       /admin/reports/results/export      — สรุปผลคะแนน (ลับ/นับได้)
   POST      /admin/reset               — ลบข้อมูลผลเลือกตั้งและยืนยันตัวตน
 
-โค้ดเดิมทั้งหมด (elections, candidates, users, export xlsx) ยังคงอยู่ครบ
+หมายเหตุ v3 — ความลับ/ความโปร่งใส:
+  - รายงาน "ผู้มาใช้สิทธิ" ดึงจาก Turnout (member จริง — ตรวจสอบได้)
+  - บัตรลงคะแนน (votes) ไม่มีตัวระบุผู้ลงคะแนน — ย้อนรอยไม่ได้
 """
 
 import io
@@ -29,7 +31,7 @@ from flask_login import login_required, current_user
 
 from models.election       import Election
 from models.candidate      import Candidate
-from models.vote           import Vote
+from models.vote           import Vote, Turnout
 from models.member         import Member
 from models.system_setting import SystemSetting
 from models.access_log     import AccessLog
@@ -510,21 +512,22 @@ def export_email_changed():
 @admin_bp.route("/reports/votes/export")
 @admin_required
 def export_votes():
+    """รายชื่อผู้มาใช้สิทธิ (ตรวจสอบได้) — ไม่มีข้อมูลว่าเลือกใคร"""
     elections = Election.get_all()
     rows = []
     for e in elections:
-        voters = Vote.get_voters_by_election(e.id)
-        for v in voters:
-            rows.append((e.title, v["member_id_hash"][:16] + "…", str(v["voted_at"])))
+        for v in Turnout.list_by_election(e.id):
+            name = v.get("full_name") or f"#{v['member_id']}"
+            rows.append((e.title, name, str(v["voted_at"])))
     buf = _make_xlsx(
-        "ผลการลงคะแนน",
-        ["วาระ", "รหัสสมาชิก (เข้ารหัส)", "เวลา"],
+        "รายชื่อผู้มาใช้สิทธิ",
+        ["วาระ", "ชื่อ-สกุลผู้มาใช้สิทธิ", "เวลา"],
         rows, [30, 30, 22],
     )
     return send_file(buf,
         mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         as_attachment=True,
-        download_name=f"votes_{datetime.now().strftime('%Y%m%d')}.xlsx")
+        download_name=f"turnout_{datetime.now().strftime('%Y%m%d')}.xlsx")
 
 
 @admin_bp.route("/reports/summary/export")
@@ -532,7 +535,7 @@ def export_votes():
 def export_summary():
     elections = Election.get_all()
     rows = [
-        (e.title, e.type_label, e.status, Vote.count_by_election(e.id))
+        (e.title, e.type_label, e.status, Turnout.count_by_election(e.id))
         for e in elections
     ]
     buf = _make_xlsx(
@@ -582,6 +585,7 @@ def reset():
     conn = get_db()
     cur  = conn.cursor()
     cur.execute("DELETE FROM votes")
+    cur.execute("DELETE FROM vote_turnout")
     cur.execute("DELETE FROM otps")
     cur.execute("UPDATE members SET verified = FALSE, email_new = NULL")
     cur.execute("DELETE FROM access_logs")

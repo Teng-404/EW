@@ -1,17 +1,19 @@
 """
-routes/vote.py — Vote Blueprint  (README v2)
+routes/vote.py — Vote Blueprint  (README v3)
 
-GET/POST  /vote                       — ขอ OTP ก่อนลงคะแนน (ขั้นที่ 2)
-POST      /vote/request-otp           — ส่ง OTP
+GET/POST  /vote                       — ขอ OTP ก่อนลงคะแนน (ต้องล็อกอินก่อน)
 GET/POST  /vote/otp                   — กรอก OTP
-GET       /vote/ballot                — หน้าหลัก เมนูซ้าย
-GET       /vote/ballot/<type>         — รายชื่อผู้สมัครตามประเภท
-POST      /vote/ballot/<type>/submit  — บันทึกคะแนน
+GET       /vote/ballot                — (compat) เด้งกลับหน้าแรก
+GET       /vote/ballot/<id>           — รายชื่อผู้สมัครของวาระ
+POST      /vote/ballot/<id>/submit    — บันทึกคะแนน
 GET       /results                    — ผลคะแนน Realtime (ทุกประเภท)
 GET       /results/json               — JSON สำหรับ Chart.js
+
+หมายเหตุความลับ/ความโปร่งใส:
+  - ตรวจการมาใช้สิทธิ + กันลงคะแนนซ้ำ → ใช้ Turnout (เก็บ member_id จริง)
+  - บันทึกผลการลงคะแนน               → ใช้ Vote.cast_secret (ไม่ผูกกับผู้ลงคะแนน)
 """
 
-import hashlib
 import smtplib
 from email.mime.text import MIMEText
 
@@ -19,23 +21,38 @@ from flask import (
     Blueprint, render_template, redirect, url_for,
     flash, request, session, jsonify, current_app,
 )
+from flask_login import current_user
 
 from models.election       import Election, ELECTION_TYPES
 from models.candidate      import Candidate
 from models.member         import Member
 from models.system_setting import SystemSetting
 from models.access_log     import AccessLog
-from models.vote           import OTP, Vote
+from models.vote           import OTP, Vote, Turnout
 
 vote_bp = Blueprint("vote", __name__)
 
 
-# ── หน้าแรก (compat — base.html และ auth.py ยัง url_for vote.index) ──
+# ── หน้าแรก (เป็นเมนูลงคะแนนในตัว) ───────────────────────────
 
 @vote_bp.route("/")
 def index():
     elections = Election.get_all()
-    return render_template("index.html", elections=elections)
+
+    # ตรวจว่าผู้ใช้ลงคะแนนวาระไหนไปแล้ว (ถ้าผ่าน OTP แล้ว)
+    voted_ids = set()
+    member    = None
+    member_id = session.get("vote_member_id")
+    if member_id:
+        member    = Member.get_by_id(member_id)
+        voted_ids = {e.id for e in elections if Turnout.has_voted(member_id, e.id)}
+
+    return render_template(
+        "index.html",
+        elections=elections,
+        voted_ids=voted_ids,
+        member=member,
+    )
 
 
 # ── Helpers ────────────────────────────────────────────────
@@ -67,14 +84,19 @@ def _send_otp_email(to_email: str, code: str) -> None:
         raise
 
 
-def _member_hash(member_id: int) -> str:
-    """เข้ารหัส member_id ก่อนบันทึกใน votes"""
-    secret = current_app.config.get("SECRET_KEY", "secret")
-    return hashlib.sha256(f"{secret}:{member_id}".encode()).hexdigest()
+def _login_guard():
+    """ข้อ 1 — ต้องล็อกอินเข้าสู่ระบบก่อนเสมอ ไม่งั้นเด้งไปหน้าล็อกอิน"""
+    if not current_user.is_authenticated:
+        flash("กรุณาเข้าสู่ระบบก่อนลงคะแนน", "warning")
+        return redirect(url_for("auth.login", next=url_for("vote.request_otp")))
+    return None
 
 
 def _ballot_guard():
-    """ตรวจ session vote_member_id — redirect ถ้าไม่ผ่าน OTP"""
+    """ตรวจ session vote_member_id — ต้องล็อกอิน + ผ่าน OTP ก่อน"""
+    redir = _login_guard()
+    if redir:
+        return redir
     if not session.get("vote_member_id"):
         flash("กรุณายืนยัน OTP ก่อนลงคะแนน", "warning")
         return redirect(url_for("vote.request_otp"))
@@ -85,6 +107,11 @@ def _ballot_guard():
 
 @vote_bp.route("/vote", methods=["GET", "POST"])
 def request_otp():
+    # ข้อ 1 — ยังไม่ล็อกอิน ให้เด้งไปหน้าล็อกอินก่อนเสมอ
+    redir = _login_guard()
+    if redir:
+        return redir
+
     if not SystemSetting.is_enabled("vote_enabled"):
         flash("ยังไม่เปิดให้ใช้งานระบบลงคะแนน", "warning")
         return render_template("vote_request_otp.html", disabled=True)
@@ -140,6 +167,10 @@ def request_otp():
 
 @vote_bp.route("/vote/otp", methods=["GET", "POST"])
 def verify_otp():
+    redir = _login_guard()
+    if redir:
+        return redir
+
     member_id = session.get("vote_pending_member_id")
     if not member_id:
         flash("กรุณาขอ OTP ก่อน", "warning")
@@ -151,7 +182,7 @@ def verify_otp():
             session.pop("vote_pending_member_id", None)
             session["vote_member_id"] = member_id
             AccessLog.log("vote_otp_verified", _client_ip(), "vote", member_id)
-            return redirect(url_for("vote.ballot"))
+            return redirect(url_for("vote.index"))
         else:
             AccessLog.log("vote_otp_failed", _client_ip(), "vote", member_id)
             flash("รหัส OTP ไม่ถูกต้องหรือหมดอายุ", "danger")
@@ -159,35 +190,18 @@ def verify_otp():
     return render_template("verify_otp.html", purpose="vote")
 
 
-# ── Ballot: หน้าหลัก เมนูซ้าย ─────────────────────────────
+# ── Ballot: (compat) เด้งกลับหน้าแรก ──────────────────────
+# ข้อ 3/4 — เลิกใช้ vote_ballot.html แล้ว หน้าแรก (index) ทำหน้าที่นี้แทน
 
 @vote_bp.route("/vote/ballot")
 def ballot():
     redir = _ballot_guard()
     if redir:
         return redir
-
-    member_id  = session["vote_member_id"]
-    member     = Member.get_by_id(member_id)
-    elections  = Election.get_visible_open()
-
-    # ตรวจว่าลงคะแนนวาระไหนแล้ว
-    member_hash = _member_hash(member_id)
-    voted_ids = {
-        e.id for e in elections
-        if Vote.has_voted(member_hash, e.id)
-    }
-
-    return render_template(
-        "vote_ballot.html",
-        elections=elections,
-        voted_ids=voted_ids,
-        member=member,
-        ELECTION_TYPES=ELECTION_TYPES,
-    )
+    return redirect(url_for("vote.index"))
 
 
-# ── Ballot: รายชื่อผู้สมัครตามประเภท ─────────────────────
+# ── Ballot: รายชื่อผู้สมัครของวาระ ────────────────────────
 
 @vote_bp.route("/vote/ballot/<int:election_id>")
 def ballot_detail(election_id: int):
@@ -198,14 +212,13 @@ def ballot_detail(election_id: int):
     election = Election.get_by_id(election_id)
     if not election or not election.is_open:
         flash("วาระนี้ยังไม่เปิดรับลงคะแนน", "warning")
-        return redirect(url_for("vote.ballot"))
+        return redirect(url_for("vote.index"))
 
-    member_id   = session["vote_member_id"]
-    member_hash = _member_hash(member_id)
+    member_id = session["vote_member_id"]
 
-    if Vote.has_voted(member_hash, election.id):
+    if Turnout.has_voted(member_id, election.id):
         flash("คุณได้ลงคะแนนวาระนี้แล้ว", "info")
-        return redirect(url_for("vote.ballot"))
+        return redirect(url_for("vote.index"))
 
     candidates = Candidate.get_by_election(election.id)
     return render_template(
@@ -227,14 +240,13 @@ def ballot_submit(election_id: int):
     election = Election.get_by_id(election_id)
     if not election or not election.is_open:
         flash("วาระนี้ไม่ได้เปิดรับลงคะแนน", "warning")
-        return redirect(url_for("vote.ballot"))
+        return redirect(url_for("vote.index"))
 
-    member_id   = session["vote_member_id"]
-    member_hash = _member_hash(member_id)
+    member_id = session["vote_member_id"]
 
-    if Vote.has_voted(member_hash, election.id):
+    if Turnout.has_voted(member_id, election.id):
         flash("คุณได้ลงคะแนนวาระนี้แล้ว", "info")
-        return redirect(url_for("vote.ballot"))
+        return redirect(url_for("vote.index"))
 
     # รับ candidate_ids (รองรับ max_votes > 1)
     candidate_ids = request.form.getlist("candidate_id", type=int)
@@ -252,14 +264,17 @@ def ballot_submit(election_id: int):
         return redirect(url_for("vote.ballot_detail", election_id=election_id))
 
     try:
+        # 1) บันทึกบัตรลงคะแนน (ลับ — ไม่ผูกกับผู้ลงคะแนน)
         for cid in candidate_ids:
-            Vote.cast_hashed(member_hash, cid, election.id)
+            Vote.cast_secret(cid, election.id)
+        # 2) บันทึกการมาใช้สิทธิ (ตรวจสอบได้ — กันลงคะแนนซ้ำ)
+        Turnout.record(member_id, election.id)
         AccessLog.log(f"voted_{election.type}_{election.id}", _client_ip(), "vote", member_id)
         flash("ลงคะแนนสำเร็จ!", "success")
     except Exception:
         flash("เกิดข้อผิดพลาด ไม่สามารถบันทึกคะแนนได้", "danger")
 
-    return redirect(url_for("vote.ballot"))
+    return redirect(url_for("vote.index"))
 
 
 # ── Results ────────────────────────────────────────────────
