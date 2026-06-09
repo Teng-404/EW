@@ -2,7 +2,7 @@
 {% block title %}ลงคะแนน — {{ election.type_label }}{% endblock %}
 
 {% block content %}
-<div style="max-width:960px; margin:0 auto;">
+<div>
   <a href="{{ url_for('vote.ballot') }}" class="btn btn-ghost btn-sm mb-2" style="padding-left:6px;">
     <svg style="width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round" viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
     กลับเมนูลงคะแนน
@@ -29,9 +29,9 @@
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
 
     {% if candidates %}
-      <div class="grid-3" id="candidateGrid" style="margin-bottom:16px;">
+      <div id="candidateGrid" style="display:grid; grid-template-columns:repeat(4, 1fr); gap:10px; margin-bottom:16px;">
         {% for c in candidates %}
-        <label class="candidate-card" id="card-{{ c.id }}" style="cursor:pointer; display:block;">
+        <label class="candidate-card" id="card-{{ c.id }}" style="cursor:pointer; display:block; padding:0; overflow:hidden;">
           <input type="{% if max_votes == 1 %}radio{% else %}checkbox{% endif %}"
                  name="candidate_id" value="{{ c.id }}"
                  {% if max_votes == 1 %}required{% endif %}
@@ -57,12 +57,14 @@
 
           <div class="cand-body">
             <div class="candidate-name">{{ c.name }}</div>
+            {% if c.party %}<div class="candidate-party">{{ c.party }}</div>{% endif %}
+            {% if c.bio %}<div class="candidate-bio">{{ c.bio }}</div>{% endif %}
           </div>
         </label>
         {% endfor %}
       </div>
 
-      <div style="display:flex; gap:10px; align-items:center;">
+      <div style="display:flex; gap:10px; align-items:center; justify-content:flex-end;">
         <button type="submit" class="btn btn-primary btn-lg" id="submitBtn" disabled>
           ยืนยันการลงคะแนน
         </button>

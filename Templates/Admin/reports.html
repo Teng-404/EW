@@ -1,14 +1,53 @@
 {% extends "base.html" %}
 {% block title %}รายงาน{% endblock %}
 
+{% block head %}
+<style>
+  /* ── Report list ── */
+  .report-list .report-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 16px 18px;
+    border-bottom: 1px solid var(--border);
+  }
+  .report-list .report-row:last-child { border-bottom: none; }
+  .report-list .report-row:hover { background: #f5f8fd; }
+
+  .report-row-info { min-width: 0; }
+  .report-row-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-1);
+    margin-bottom: 3px;
+  }
+  .report-row-desc {
+    font-size: 11.5px;
+    color: var(--text-3);
+    line-height: 1.5;
+  }
+  .report-row-actions {
+    display: flex;
+    gap: 8px;
+    flex-shrink: 0;
+  }
+
+  @media (max-width: 640px) {
+    .report-list .report-row { flex-direction: column; align-items: stretch; }
+    .report-row-actions .btn { flex: 1; }
+  }
+</style>
+{% endblock %}
+
 {% block content %}
 <div class="mb-3">
   <h1>รายงาน</h1>
   <p class="text-muted">ออกรายงานผลการเลือกตั้งในรูปแบบ PDF และ Excel</p>
 </div>
 
-<!-- Summary Stats -->
-<div class="grid-4 mb-4">
+{# ── Summary Stats ── #}
+<div class="grid-4 mb-3">
   <div class="stat-card" style="border-left-color:var(--navy-mid)">
     <div class="stat-label">สมาชิกทั้งหมด</div>
     <div class="stat-value">{{ total_members }}</div>
@@ -16,12 +55,12 @@
   </div>
   <div class="stat-card" style="border-left-color:var(--green)">
     <div class="stat-label">ยืนยันตัวตนแล้ว</div>
-    <div class="stat-value">{{ verified }}</div>
+    <div class="stat-value" style="color:var(--green);">{{ total_verified }}</div>
     <div class="stat-sub">ราย</div>
   </div>
   <div class="stat-card" style="border-left-color:var(--gold)">
     <div class="stat-label">เปลี่ยน Email</div>
-    <div class="stat-value">{{ email_changed }}</div>
+    <div class="stat-value" style="color:var(--gold);">{{ total_changed }}</div>
     <div class="stat-sub">ราย</div>
   </div>
   <div class="stat-card" style="border-left-color:var(--sky)">
@@ -31,93 +70,92 @@
   </div>
 </div>
 
-<!-- Report Cards -->
-<div class="grid-2 gap-3">
+{# ── Report List ── #}
+<div class="card mb-3">
+  <div class="card-header">
+    <h2 style="font-size:14px; font-weight:600;">ดาวน์โหลดรายงาน</h2>
+  </div>
+  <div class="card-body" style="padding:0;">
+    <div class="report-list">
 
-  <div class="card">
-    <div class="card-header">
-      <h2>สมาชิกที่ยืนยันตัวตนผ่านระบบออนไลน์</h2>
-    </div>
-    <div class="card-body">
-      <p class="text-muted mb-3">รายชื่อสมาชิกที่ยืนยันตัวตนสำเร็จแล้ว {{ verified }} ราย</p>
-      <div style="display:flex;gap:8px;">
-        <a href="{{ url_for('admin.export_verified', format='excel') }}" class="btn btn-outline btn-sm">⬇ Excel</a>
-        <a href="{{ url_for('admin.export_verified', format='pdf') }}" class="btn btn-outline btn-sm">⬇ PDF</a>
+      <div class="report-row">
+        <div class="report-row-info">
+          <div class="report-row-title">สมาชิกที่ยืนยันตัวตนผ่านระบบออนไลน์</div>
+          <div class="report-row-desc">รายชื่อสมาชิกที่ยืนยันตัวตนสำเร็จแล้ว {{ total_verified }} ราย</div>
+        </div>
+        <div class="report-row-actions">
+          <a href="{{ url_for('admin.export_verified', format='excel') }}" class="btn btn-outline btn-sm">⬇ Excel</a>
+          <a href="{{ url_for('admin.export_verified', format='pdf') }}" class="btn btn-outline btn-sm">⬇ PDF</a>
+        </div>
       </div>
+
+      <div class="report-row">
+        <div class="report-row-info">
+          <div class="report-row-title">สมาชิกที่เปลี่ยน Email</div>
+          <div class="report-row-desc">รายชื่อสมาชิกที่แก้ไข Email ผ่านระบบ {{ total_changed }} ราย</div>
+        </div>
+        <div class="report-row-actions">
+          <a href="{{ url_for('admin.export_email_changed', format='excel') }}" class="btn btn-outline btn-sm">⬇ Excel</a>
+          <a href="{{ url_for('admin.export_email_changed', format='pdf') }}" class="btn btn-outline btn-sm">⬇ PDF</a>
+        </div>
+      </div>
+
+      <div class="report-row">
+        <div class="report-row-info">
+          <div class="report-row-title">ผลการลงคะแนนรายบุคคล (เข้ารหัส)</div>
+          <div class="report-row-desc">บันทึกการลงคะแนนทุกรายการ ซ่อน identity สมาชิกด้วย hash</div>
+        </div>
+        <div class="report-row-actions">
+          <a href="{{ url_for('admin.export_votes', format='excel') }}" class="btn btn-outline btn-sm">⬇ Excel</a>
+          <a href="{{ url_for('admin.export_votes', format='pdf') }}" class="btn btn-outline btn-sm">⬇ PDF</a>
+        </div>
+      </div>
+
+      <div class="report-row">
+        <div class="report-row-info">
+          <div class="report-row-title">สรุปจำนวนผู้มาลงคะแนน</div>
+          <div class="report-row-desc">จำนวนผู้ใช้สิทธิ์แต่ละวาระ</div>
+        </div>
+        <div class="report-row-actions">
+          <a href="{{ url_for('admin.export_summary', format='excel') }}" class="btn btn-outline btn-sm">⬇ Excel</a>
+          <a href="{{ url_for('admin.export_summary', format='pdf') }}" class="btn btn-outline btn-sm">⬇ PDF</a>
+        </div>
+      </div>
+
+      <div class="report-row">
+        <div class="report-row-info">
+          <div class="report-row-title">สรุปผลคะแนนรวมทุกวาระ</div>
+          <div class="report-row-desc">คะแนนของผู้สมัครทุกคน เรียงตามวาระ</div>
+        </div>
+        <div class="report-row-actions">
+          <a href="{{ url_for('admin.export_results_all', format='excel') }}" class="btn btn-outline btn-sm">⬇ Excel</a>
+          <a href="{{ url_for('admin.export_results_all', format='pdf') }}" class="btn btn-outline btn-sm">⬇ PDF</a>
+        </div>
+      </div>
+
     </div>
   </div>
-
-  <div class="card">
-    <div class="card-header">
-      <h2>สมาชิกที่เปลี่ยน Email</h2>
-    </div>
-    <div class="card-body">
-      <p class="text-muted mb-3">รายชื่อสมาชิกที่แก้ไข Email ผ่านระบบ {{ email_changed }} ราย</p>
-      <div style="display:flex;gap:8px;">
-        <a href="{{ url_for('admin.export_email_changed', format='excel') }}" class="btn btn-outline btn-sm">⬇ Excel</a>
-        <a href="{{ url_for('admin.export_email_changed', format='pdf') }}" class="btn btn-outline btn-sm">⬇ PDF</a>
-      </div>
-    </div>
-  </div>
-
-  <div class="card">
-    <div class="card-header">
-      <h2>ผลการลงคะแนนรายบุคคล (เข้ารหัส)</h2>
-    </div>
-    <div class="card-body">
-      <p class="text-muted mb-3">บันทึกการลงคะแนนทุกรายการ ซ่อน identity สมาชิกด้วย hash</p>
-      <div style="display:flex;gap:8px;">
-        <a href="{{ url_for('admin.export_votes', format='excel') }}" class="btn btn-outline btn-sm">⬇ Excel</a>
-        <a href="{{ url_for('admin.export_votes', format='pdf') }}" class="btn btn-outline btn-sm">⬇ PDF</a>
-      </div>
-    </div>
-  </div>
-
-  <div class="card">
-    <div class="card-header">
-      <h2>สรุปจำนวนผู้มาลงคะแนน</h2>
-    </div>
-    <div class="card-body">
-      <p class="text-muted mb-3">จำนวนผู้ใช้สิทธิ์แต่ละวาระ</p>
-      <div style="display:flex;gap:8px;">
-        <a href="{{ url_for('admin.export_summary', format='excel') }}" class="btn btn-outline btn-sm">⬇ Excel</a>
-        <a href="{{ url_for('admin.export_summary', format='pdf') }}" class="btn btn-outline btn-sm">⬇ PDF</a>
-      </div>
-    </div>
-  </div>
-
-  <div class="card">
-    <div class="card-header">
-      <h2>สรุปผลคะแนนรวมทุกวาระ</h2>
-    </div>
-    <div class="card-body">
-      <p class="text-muted mb-3">คะแนนของผู้สมัครทุกคน เรียงตามวาระ</p>
-      <div style="display:flex;gap:8px;">
-        <a href="{{ url_for('admin.export_all_results', format='excel') }}" class="btn btn-outline btn-sm">⬇ Excel</a>
-        <a href="{{ url_for('admin.export_all_results', format='pdf') }}" class="btn btn-outline btn-sm">⬇ PDF</a>
-      </div>
-    </div>
-  </div>
-
 </div>
 
-<!-- Reset Zone -->
-<div class="card mt-4" style="border-color:var(--red);">
-  <div class="card-header" style="background:var(--red-bg);">
-    <h2 style="color:var(--red);">⚠ รีเซ็ตระบบ</h2>
+{# ── Reset Zone ── #}
+<div class="card" style="border-color:var(--red); margin-top:32px;">
+  <div class="card-header" style="background:var(--red-bg); border-bottom-color:var(--red);">
+    <h2 style="color:var(--red); font-size:14px; font-weight:600;">⚠ รีเซ็ตระบบ</h2>
   </div>
   <div class="card-body">
-    <p class="mb-3">ลบข้อมูลผลเลือกตั้งและการยืนยันตัวตนทั้งหมด (votes, otps, logs, is_verified) —
-      <strong>ไม่สามารถกู้คืนได้</strong></p>
+    <p class="text-muted mb-3" style="line-height:1.6;">
+      ลบข้อมูลผลเลือกตั้งและการยืนยันตัวตนทั้งหมด (votes, otps, logs, is_verified) —
+      <strong style="color:var(--red);">ไม่สามารถกู้คืนได้</strong>
+    </p>
     <form method="POST" action="{{ url_for('admin.reset') }}"
           onsubmit="return confirm('ยืนยันการรีเซ็ต? ข้อมูลจะถูกลบถาวร');">
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-      <div class="d-flex gap-2 align-end">
+      <div class="d-flex gap-2 align-end flex-wrap">
         <div>
           <label class="form-label">พิมพ์ RESET เพื่อยืนยัน</label>
           <input type="text" name="confirm" class="form-control" placeholder="RESET" style="width:160px;">
         </div>
-        <button type="submit" class="btn" style="background:var(--red);color:#fff;">รีเซ็ตระบบ</button>
+        <button type="submit" class="btn btn-danger">รีเซ็ตระบบ</button>
       </div>
     </form>
   </div>
