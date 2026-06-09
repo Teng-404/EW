@@ -48,7 +48,7 @@
     </div>
   </div>
 
-  <div style="padding:16px 18px; display:grid; grid-template-columns:1fr 260px; gap:20px; align-items:start;">
+  <div class="results-body">
 
     {# Result rows #}
     <div class="result-rows" data-id="{{ e.id }}">
@@ -76,14 +76,17 @@
       {% endif %}
     </div>
 
-    {# Chart #}
-    <div>
-      <canvas id="chart-{{ e.id }}" height="200"></canvas>
+    {# Chart — แท่งแนวนอน สูงตามจำนวนผู้สมัคร ชื่อไม่ทับกัน #}
+    {% if candidates %}
+    <div class="chart-box" style="height:{{ 48 * (candidates|length) + 36 }}px;">
+      <canvas id="chart-{{ e.id }}"></canvas>
     </div>
+    {% endif %}
 
   </div>
 </div>
 
+{% if candidates %}
 <script>
 (function() {
   const COLORS = ['#1A3461','#3B7DD8','#C8962A','#1A7F4B','#9A5F10','#B91C1C'];
@@ -101,16 +104,19 @@
       }]
     },
     options: {
+      indexAxis: 'y',
       responsive: true,
+      maintainAspectRatio: false,
       plugins: { legend: { display: false } },
       scales: {
-        y: { beginAtZero: true, ticks: { stepSize: 1, font: { size: 11 } }, grid: { color: 'rgba(0,0,0,.05)' } },
-        x: { grid: { display: false }, ticks: { font: { size: 11 } } }
+        x: { beginAtZero: true, ticks: { stepSize: 1, precision: 0, font: { size: 11 } }, grid: { color: 'rgba(0,0,0,.05)' } },
+        y: { grid: { display: false }, ticks: { font: { size: 11 }, autoSkip: false } }
       }
     }
   });
 })();
 </script>
+{% endif %}
 
 {% endfor %}
 {% endblock %}
