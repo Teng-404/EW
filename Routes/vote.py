@@ -173,15 +173,15 @@ def ballot():
 
     # ตรวจว่าลงคะแนนวาระไหนแล้ว
     member_hash = _member_hash(member_id)
-    voted_types = {
-        e.type for e in elections
+    voted_ids = {
+        e.id for e in elections
         if Vote.has_voted(member_hash, e.id)
     }
 
     return render_template(
         "vote_ballot.html",
         elections=elections,
-        voted_types=voted_types,
+        voted_ids=voted_ids,
         member=member,
         ELECTION_TYPES=ELECTION_TYPES,
     )
@@ -189,17 +189,13 @@ def ballot():
 
 # ── Ballot: รายชื่อผู้สมัครตามประเภท ─────────────────────
 
-@vote_bp.route("/vote/ballot/<election_type>")
-def ballot_detail(election_type: str):
+@vote_bp.route("/vote/ballot/<int:election_id>")
+def ballot_detail(election_id: int):
     redir = _ballot_guard()
     if redir:
         return redir
 
-    if election_type not in ELECTION_TYPES:
-        flash("ประเภทวาระไม่ถูกต้อง", "danger")
-        return redirect(url_for("vote.ballot"))
-
-    election = Election.get_by_type(election_type)
+    election = Election.get_by_id(election_id)
     if not election or not election.is_open:
         flash("วาระนี้ยังไม่เปิดรับลงคะแนน", "warning")
         return redirect(url_for("vote.ballot"))
@@ -222,13 +218,13 @@ def ballot_detail(election_type: str):
 
 # ── Ballot: บันทึกคะแนน ────────────────────────────────────
 
-@vote_bp.route("/vote/ballot/<election_type>/submit", methods=["POST"])
-def ballot_submit(election_type: str):
+@vote_bp.route("/vote/ballot/<int:election_id>/submit", methods=["POST"])
+def ballot_submit(election_id: int):
     redir = _ballot_guard()
     if redir:
         return redir
 
-    election = Election.get_by_type(election_type)
+    election = Election.get_by_id(election_id)
     if not election or not election.is_open:
         flash("วาระนี้ไม่ได้เปิดรับลงคะแนน", "warning")
         return redirect(url_for("vote.ballot"))
@@ -244,21 +240,21 @@ def ballot_submit(election_type: str):
     candidate_ids = request.form.getlist("candidate_id", type=int)
     if not candidate_ids:
         flash("กรุณาเลือกผู้สมัครอย่างน้อย 1 คน", "danger")
-        return redirect(url_for("vote.ballot_detail", election_type=election_type))
+        return redirect(url_for("vote.ballot_detail", election_id=election_id))
 
     if len(candidate_ids) > election.max_votes:
         flash(f"เลือกได้ไม่เกิน {election.max_votes} คน", "danger")
-        return redirect(url_for("vote.ballot_detail", election_type=election_type))
+        return redirect(url_for("vote.ballot_detail", election_id=election_id))
 
     valid_ids = {c.id for c in Candidate.get_by_election(election.id)}
     if not all(cid in valid_ids for cid in candidate_ids):
         flash("ผู้สมัครไม่ถูกต้อง", "danger")
-        return redirect(url_for("vote.ballot_detail", election_type=election_type))
+        return redirect(url_for("vote.ballot_detail", election_id=election_id))
 
     try:
         for cid in candidate_ids:
             Vote.cast_hashed(member_hash, cid, election.id)
-        AccessLog.log(f"voted_{election_type}", _client_ip(), "vote", member_id)
+        AccessLog.log(f"voted_{election.type}_{election.id}", _client_ip(), "vote", member_id)
         flash("ลงคะแนนสำเร็จ!", "success")
     except Exception:
         flash("เกิดข้อผิดพลาด ไม่สามารถบันทึกคะแนนได้", "danger")

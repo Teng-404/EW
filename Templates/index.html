@@ -28,7 +28,7 @@
       <div class="card-footer">
         {% if election.is_open %}
           {% if session.get('vote_member_id') %}
-            <a href="{{ url_for('vote.ballot_detail', election_type=election.type) }}" class="btn btn-sky btn-sm">
+            <a href="{{ url_for('vote.ballot_detail', election_id=election.id) }}" class="btn btn-sky btn-sm">
               ลงคะแนน →
             </a>
           {% else %}

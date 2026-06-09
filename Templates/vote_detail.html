@@ -24,7 +24,7 @@
     <button type="button" class="btn btn-ghost btn-sm" onclick="clearAll()">ยกเลิกทั้งหมด</button>
   </div>
 
-  <form method="POST" action="{{ url_for('vote.ballot_submit', election_type=election.type) }}"
+  <form method="POST" action="{{ url_for('vote.ballot_submit', election_id=election.id) }}"
         id="voteForm" onsubmit="return confirmVote()">
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
 
