@@ -201,12 +201,22 @@ def add_candidate(election_id: int):
     if not election:
         abort(404)
     name      = request.form.get("name", "").strip()
+    party     = request.form.get("party", "").strip()
+    bio       = request.form.get("bio", "").strip()
     photo_url = request.form.get("photo_url", "").strip()
     number    = request.form.get("number", type=int)
+
     if not name:
         flash("กรุณาระบุชื่อผู้สมัคร", "danger")
         return redirect(url_for("admin.manage_candidates", election_id=election_id))
-    Candidate.create(election_id, name, photo_url=photo_url, number=number)
+    if not number:
+        flash("กรุณาระบุหมายเลขผู้สมัคร", "danger")
+        return redirect(url_for("admin.manage_candidates", election_id=election_id))
+
+    Candidate.create(
+        election_id, name,
+        party=party, bio=bio, photo_url=photo_url, number=number,
+    )
     flash(f"เพิ่มผู้สมัคร '{name}' สำเร็จ", "success")
     return redirect(url_for("admin.manage_candidates", election_id=election_id))
 
@@ -218,12 +228,18 @@ def edit_candidate(candidate_id: int):
     if not candidate:
         abort(404)
     name      = request.form.get("name", "").strip()
+    party     = request.form.get("party", "").strip()
+    bio       = request.form.get("bio", "").strip()
     number    = request.form.get("number", type=int)
     photo_url = request.form.get("photo_url", "").strip()
+
     if not name:
         flash("กรุณาระบุชื่อผู้สมัคร", "danger")
         return redirect(url_for("admin.manage_candidates", election_id=candidate.election_id))
-    candidate.update(name, photo_url=photo_url, number=number)
+
+    candidate.update(
+        name, party=party, bio=bio, photo_url=photo_url, number=number,
+    )
     flash("แก้ไขข้อมูลผู้สมัครแล้ว", "success")
     return redirect(url_for("admin.manage_candidates", election_id=candidate.election_id))
 

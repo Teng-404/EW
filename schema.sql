@@ -55,6 +55,10 @@ CREATE TABLE IF NOT EXISTS elections (
     FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE SET NULL
 );
 
+ALTER TABLE candidates
+    ADD COLUMN party VARCHAR(100) AFTER name,
+    ADD COLUMN bio   TEXT         AFTER party;
+
 -- ── ผู้สมัคร ────────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS candidates (
     id          INT          AUTO_INCREMENT PRIMARY KEY,
