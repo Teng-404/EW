@@ -16,6 +16,8 @@ pwa.py — Progressive Web App blueprint สำหรับ Election Web
 base.html และหน้า auth ที่ไม่ extends base.html (login/register/verify_otp)
 """
 
+import os
+
 from flask import Blueprint, send_from_directory, render_template, current_app, make_response
 
 pwa_bp = Blueprint("pwa", __name__)
@@ -25,9 +27,9 @@ pwa_bp = Blueprint("pwa", __name__)
 def service_worker():
     """
     ต้องเสิร์ฟจาก root '/' เพื่อให้ service worker คุมได้ทั้งเว็บ
-    และตั้ง Service-Worker-Allowed เผื่อกรณีไฟล์อยู่ใต้ /static/
+    ตัวไฟล์เก็บไว้ใน static/js/ แต่ URL ที่เสิร์ฟยังเป็น /sw.js (scope = ทั้งเว็บ)
     """
-    resp = make_response(send_from_directory(current_app.static_folder, "sw.js"))
+    resp = make_response(send_from_directory(os.path.join(current_app.static_folder, "js"), "sw.js"))
     resp.headers["Content-Type"] = "application/javascript; charset=utf-8"
     resp.headers["Service-Worker-Allowed"] = "/"
     # ห้าม browser แคช service worker นาน ๆ ไม่งั้นอัปเดตยาก
