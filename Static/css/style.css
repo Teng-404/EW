@@ -1081,15 +1081,13 @@ textarea.form-control { resize: vertical; min-height: 80px; }
   text-decoration: none;
 }
 
-/* 1) จำกัดความกว้างเฉพาะ "เนื้อหาหน้า" ไม่ให้ยืดเต็มจอ + จัดกลาง
-      (ใช้ .page-content > .container เพื่อไม่ให้ไปโดน navbar ที่ใช้ .container เหมือนกัน
-       navbar เลยยังเต็มจอเหมือนเดิม) */
+/* 1) จำกัดความกว้างเฉพาะ "เนื้อหาหน้า" ไม่ให้ยืดเต็มจอ + จัดกลาง */
 .page-content > .container {
   max-width: 1180px;
   margin: 0 auto;
 }
- 
-/* 2) สัดส่วน 2 คอลัมน์ใหม่ (เดิมเป็น inline 1fr 260px) + responsive */
+
+/* 2) สัดส่วน 2 คอลัมน์ใหม่ + responsive */
 .results-body {
   padding: 16px 18px;
   display: grid;
@@ -1100,15 +1098,24 @@ textarea.form-control { resize: vertical; min-height: 80px; }
 @media (max-width: 820px) {
   .results-body { grid-template-columns: 1fr; }
 }
- 
-/* 3) กรอบกราฟ — สูงถูกกำหนดจาก inline style ใน template */
+
+/* 3) กรอบกราฟ */
 .chart-box {
   position: relative;
   min-height: 150px;
 }
- 
+
 /* 4) กันแถบ progress ลากยาวเกินจนดูโล่ง */
 .result-bar-wrap {
   max-width: 360px;
 }
 
+/* 5) แก้พื้นหลังหน้า auth ให้เต็มจอ (full-bleed)
+      ทับ margin: -2rem -2.5rem -3.5rem; เดิม
+      calc(50% - 50vw) ดึงขอบซ้าย-ขวาออกไปชนขอบจอ ไม่ว่า container จะกว้างแค่ไหน */
+.auth-page-inner {
+  margin-top: -2rem;
+  margin-bottom: -3.5rem;
+  margin-left: calc(50% - 50vw);
+  margin-right: calc(50% - 50vw);
+}
