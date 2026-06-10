@@ -1,0 +1,21 @@
+{
+  "id": "/",
+  "name": "Election Web — ระบบเลือกตั้งออนไลน์",
+  "short_name": "Election Web",
+  "description": "ระบบลงคะแนนเลือกตั้งออนไลน์ ยืนยันตัวตนด้วย OTP พร้อมรายงานผลแบบเรียลไทม์",
+  "lang": "th",
+  "dir": "ltr",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "theme_color": "#0D1F3C",
+  "background_color": "#FAFBFD",
+  "categories": ["government", "productivity", "utilities"],
+  "icons": [
+    { "src": "/static/icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/static/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/static/icons/icon-maskable-192.png", "sizes": "192x192", "type": "image/png", "purpose": "maskable" },
+    { "src": "/static/icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

@@ -43,17 +43,18 @@ def _init_login_manager(app: Flask) -> None:
 
 def _register_blueprints(app: Flask) -> None:
     from routes.auth     import auth_bp
-    from routes.verify   import verify_bp      # ← ใหม่ (ขั้นที่ 1)
+    from routes.verify   import verify_bp     
     from routes.vote     import vote_bp
     from routes.candidates import candidates_bp
     from routes.admin    import admin_bp
+    from routes.pwa        import pwa_bp
 
     app.register_blueprint(auth_bp)
     app.register_blueprint(verify_bp)          # ← /verify, /verify/otp
     app.register_blueprint(vote_bp)            # ← /vote/*, /results/*
     app.register_blueprint(candidates_bp)      # ← /candidates/*
     app.register_blueprint(admin_bp, url_prefix="/admin")
-
+    app.register_blueprint(pwa_bp)
 
 if __name__ == "__main__":
     app = create_app()

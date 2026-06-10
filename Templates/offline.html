@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ออฟไลน์ — Election Web</title>
+  <link rel="manifest" href="{{ url_for('static', filename='manifest.webmanifest') }}" />
+  <meta name="theme-color" content="#0D1F3C" />
+  <style>
+    :root { --navy:#0D1F3C; --navy-soft:#2A4A80; --gold:#C8962A; --card:#fff; }
+    * { box-sizing:border-box; margin:0; padding:0; }
+    body {
+      font-family:'IBM Plex Sans Thai','IBM Plex Sans',system-ui,sans-serif;
+      min-height:100vh; display:flex; align-items:center; justify-content:center;
+      padding:1.5rem; color:#fff;
+      background:linear-gradient(160deg,var(--navy) 0%,var(--navy-soft) 55%,#1e5fa8 100%);
+    }
+    .box { text-align:center; max-width:360px; }
+    .icon {
+      width:72px; height:72px; margin:0 auto 20px; border-radius:18px;
+      background:rgba(255,255,255,.08); display:flex; align-items:center; justify-content:center;
+      border:1px solid rgba(255,255,255,.12);
+    }
+    .icon svg { width:36px; height:36px; fill:none; stroke:var(--gold); stroke-width:2;
+                stroke-linecap:round; stroke-linejoin:round; }
+    h1 { font-size:1.15rem; font-weight:600; margin-bottom:8px; letter-spacing:-.02em; }
+    p  { font-size:.85rem; line-height:1.6; color:rgba(255,255,255,.72); margin-bottom:24px; }
+    button {
+      font-family:inherit; font-size:.85rem; font-weight:500; color:var(--navy);
+      background:var(--gold); border:none; border-radius:8px; padding:10px 22px; cursor:pointer;
+    }
+    button:active { transform:scale(.98); }
+  </style>
+</head>
+<body>
+  <div class="box">
+    <div class="icon">
+      <svg viewBox="0 0 24 24">
+        <path d="M1 1l22 22"/><path d="M16.72 11.06A10.94 10.94 0 0 1 19 12.55"/>
+        <path d="M5 12.55a10.94 10.94 0 0 1 5.17-2.39"/>
+        <path d="M10.71 5.05A16 16 0 0 1 22.58 9"/>
+        <path d="M1.42 9a15.91 15.91 0 0 1 4.7-2.88"/>
+        <path d="M8.53 16.11a6 6 0 0 1 6.95 0"/><line x1="12" y1="20" x2="12.01" y2="20"/>
+      </svg>
+    </div>
+    <h1>ออฟไลน์อยู่</h1>
+    <p>ระบบเลือกตั้งต้องใช้อินเทอร์เน็ตเพื่อความถูกต้องและปลอดภัยของการลงคะแนน กรุณาเชื่อมต่อแล้วลองอีกครั้ง</p>
+    <button onclick="location.reload()">ลองใหม่อีกครั้ง</button>
+  </div>
+</body>
+</html>
