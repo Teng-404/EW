@@ -148,7 +148,7 @@
       <strong style="color:var(--red);">ไม่สามารถกู้คืนได้</strong>
     </p>
     <form method="POST" action="{{ url_for('admin.reset') }}"
-          onsubmit="return confirm('ยืนยันการรีเซ็ต? ข้อมูลจะถูกลบถาวร');">
+          data-confirm="ยืนยันการรีเซ็ต? ข้อมูลจะถูกลบถาวร" data-confirm-danger>
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
       <div class="d-flex gap-2 align-end flex-wrap">
         <div>

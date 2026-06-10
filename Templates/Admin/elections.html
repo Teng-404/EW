@@ -93,7 +93,7 @@
                   <button type="submit" class="btn btn-success btn-sm">เปิด</button>
                 {% elif e.status == 'open' %}
                   <input type="hidden" name="status" value="closed" />
-                  <button type="submit" class="btn btn-warning btn-sm" onclick="return confirm('ปิดวาระ?')">ปิด</button>
+                  <button type="submit" class="btn btn-warning btn-sm" data-confirm="ปิดวาระ?" data-confirm-danger>ปิด</button>
                 {% else %}
                   <input type="hidden" name="status" value="pending" />
                   <button type="submit" class="btn btn-ghost btn-sm">รีเซ็ต</button>
@@ -112,7 +112,7 @@
               {# Delete #}
               {% if e.status != 'open' %}
               <form method="POST" action="{{ url_for('admin.delete_election', election_id=e.id) }}" style="display:inline;"
-                    onsubmit="return confirm('ลบวาระ {{ e.title }}?')">
+                    data-confirm="ลบวาระ {{ e.title }}?" data-confirm-danger>
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
                 <button type="submit" class="btn btn-danger btn-sm">ลบ</button>
               </form>

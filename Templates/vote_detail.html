@@ -25,7 +25,7 @@
   </div>
 
   <form method="POST" action="{{ url_for('vote.ballot_submit', election_id=election.id) }}"
-        id="voteForm" onsubmit="return confirmVote()">
+        id="voteForm">
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
 
     {% if candidates %}
@@ -132,13 +132,20 @@ function clearAll() {
   updateSelection();
 }
 
-function confirmVote() {
+document.getElementById('voteForm').addEventListener('submit', async (e) => {
+  if (e.target.dataset.confirmed === '1') { delete e.target.dataset.confirmed; return; }
+  e.preventDefault();
   const names = [];
   document.querySelectorAll('input[name="candidate_id"]:checked').forEach(inp => {
     const card = document.getElementById('card-' + inp.value);
-    names.push(card.querySelector('.candidate-name').textContent.trim());
+    names.push('\u2022 ' + card.querySelector('.candidate-name').textContent.trim());
   });
-  return confirm(`ยืนยันการลงคะแนน:\n${names.join('\n')}\n\nไม่สามารถเปลี่ยนแปลงได้ภายหลัง`);
-}
+  const ok = await appConfirm({
+    title: 'ยืนยันการลงคะแนน',
+    message: 'คุณเลือก:\n' + names.join('\n') + '\n\nไม่สามารถเปลี่ยนแปลงได้ภายหลัง',
+    okText: 'ยืนยันลงคะแนน'
+  });
+  if (ok) { e.target.dataset.confirmed = '1'; e.target.submit(); }
+});
 </script>
 {% endblock %}

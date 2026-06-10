@@ -9,6 +9,7 @@
   <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@300;400;500;600&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}" />
   {% include '_pwa_head.html' %}
+  <script src="{{ url_for('static', filename='js/app-dialog.js') }}"></script>
 </head>
 <body>
 <div class="auth-page">
@@ -90,7 +91,7 @@ document.getElementById('registerForm').addEventListener('submit', function(e) {
   const cpw = document.getElementById('confirm_password').value;
   if (pw !== cpw) {
     e.preventDefault();
-    alert('รหัสผ่านไม่ตรงกัน');
+    appAlert('รหัสผ่านไม่ตรงกัน');
   }
 });
 </script>

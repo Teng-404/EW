@@ -50,7 +50,7 @@
             {% if u.id != current_user.id %}
             <div style="display:flex; gap:6px;">
               <form method="POST" action="{{ url_for('admin.set_user_role', user_id=u.id) }}" style="display:inline;"
-                    onsubmit="return confirm('เปลี่ยนโรลของ {{ u.username }} เป็น {{ 'voter' if u.role == 'admin' else 'admin' }}?')">
+                    data-confirm="เปลี่ยนโรลของ {{ u.username }} เป็น {{ 'voter' if u.role == 'admin' else 'admin' }}?">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
                 <input type="hidden" name="role" value="{{ 'voter' if u.role == 'admin' else 'admin' }}" />
                 <button type="submit" class="btn btn-sm {% if u.role == 'admin' %}btn-warning{% else %}btn-outline{% endif %}">
@@ -59,7 +59,7 @@
               </form>
 
               <form method="POST" action="{{ url_for('admin.toggle_user_active', user_id=u.id) }}" style="display:inline;"
-                    onsubmit="return confirm('{{ 'ระงับ' if u.is_active else 'เปิดใช้' }} บัญชี {{ u.username }}?')">
+                    data-confirm="{{ 'ระงับ' if u.is_active else 'เปิดใช้' }} บัญชี {{ u.username }}?" data-confirm-danger>
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
                 <button type="submit" class="btn btn-sm {% if u.is_active %}btn-danger{% else %}btn-success{% endif %}">
                   {{ 'ระงับ' if u.is_active else 'เปิดใช้' }}

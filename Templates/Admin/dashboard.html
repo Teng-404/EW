@@ -76,7 +76,7 @@
         {% elif s.election.status == 'open' %}
           <input type="hidden" name="status" value="closed" />
           <button type="submit" class="btn btn-danger btn-sm"
-                  onclick="return confirm('ปิดวาระนี้?')">ปิดวาระ</button>
+                  data-confirm="ปิดวาระนี้?" data-confirm-danger>ปิดวาระ</button>
         {% endif %}
       </form>
     </div>
