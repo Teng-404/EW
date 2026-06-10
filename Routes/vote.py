@@ -281,7 +281,10 @@ def ballot_submit(election_id: int):
 
 @vote_bp.route("/results")
 def results():
+    election_id = request.args.get("election", type=int)
     elections = Election.get_all()
+    if election_id:
+        elections = [e for e in elections if e.id == election_id]
     data = []
     for e in elections:
         candidates = Candidate.get_by_election_with_votes(e.id)

@@ -7,6 +7,23 @@
     <h1>รายชื่อผู้สมัคร</h1>
     <p style="font-size:13px; color:var(--text-3); margin-top:4px;">แยกตามวาระการเลือกตั้ง</p>
   </div>
+  {% set els = by_election.keys() | list %}
+  {% if els | length == 1 and els[0].is_open %}
+    {% set e1 = els[0] %}
+    {% if current_user.is_authenticated %}
+      {% if session.get('vote_member_id') %}
+        <a href="{{ url_for('vote.ballot_detail', election_id=e1.id) }}" class="btn btn-outline btn-sm">ลงคะแนน →</a>
+      {% else %}
+        <a href="{{ url_for('vote.request_otp') }}" class="btn btn-outline btn-sm">ลงคะแนน →</a>
+      {% endif %}
+    {% else %}
+      <a href="{{ url_for('auth.login', next=url_for('vote.request_otp')) }}" class="btn btn-outline btn-sm">ลงคะแนน →</a>
+    {% endif %}
+  {% elif session.get('vote_member_id') %}
+    <a href="{{ url_for('vote.ballot') }}" class="btn btn-outline btn-sm">← กลับลงคะแนน</a>
+  {% else %}
+    <a href="{{ url_for('vote.request_otp') }}" class="btn btn-outline btn-sm">ลงคะแนน →</a>
+  {% endif %}
 </div>
 
 {% for election, candidates in by_election.items() %}
@@ -22,7 +39,7 @@
       </span>
     </div>
     <div style="display:flex; gap:8px; flex-wrap:wrap;">
-      <a href="{{ url_for('vote.results') }}" class="btn btn-outline btn-sm">ดูผลคะแนน</a>
+      <a href="{{ url_for('vote.results', election=election.id) }}" class="btn btn-outline btn-sm">ดูผลคะแนน</a>
       {% if current_user.is_authenticated %}
         <a href="{{ url_for('candidates.export_excel', election_id=election.id) }}" class="btn btn-ghost btn-sm">⬇ Excel</a>
       {% endif %}

@@ -36,7 +36,7 @@
       </div>
 
       <div class="card-footer">
-        <a href="{{ url_for('vote.results') }}" class="btn btn-ghost btn-sm">ดูผลคะแนน</a>
+        <a href="{{ url_for('vote.results', election=election.id) }}" class="btn btn-ghost btn-sm">ดูผลคะแนน</a>
         <a href="{{ url_for('candidates.by_election', election_id=election.id) }}" class="btn btn-ghost btn-sm">ผู้สมัคร</a>
 
         {# ── ปุ่มลงคะแนน: ดันไปทางขวา (ข้อ 2) + แสดงผลแบบ vote_ballot (ข้อ 4) ── #}
