@@ -1055,6 +1055,7 @@ textarea.form-control { resize: vertical; min-height: 80px; }
   text-decoration: none;
   transition: background var(--t), color var(--t);
   border: 1px solid var(--border);
+  white-space: nowrap;
 }
 .nav-dropdown-btn svg {
   width: 12px; height: 12px;
