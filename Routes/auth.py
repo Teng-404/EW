@@ -136,7 +136,6 @@ def logout():
     flash("ออกจากระบบแล้ว", "info")
     return redirect(url_for("auth.login"))
 
-
 # ── OTP — ขอรหัส ───────────────────────────────────────────
 
 @auth_bp.route("/request-otp/<int:election_id>")

@@ -21,11 +21,13 @@ routes/admin.py — Admin Blueprint  (README v3)
 
 import io
 import functools
+import os
+import uuid
 from datetime import datetime
 
 from flask import (
     Blueprint, render_template, redirect, url_for,
-    flash, request, send_file, abort,
+    flash, request, send_file, abort, current_app,
 )
 from flask_login import login_required, current_user
 
@@ -85,6 +87,23 @@ def _make_xlsx(ws_title: str, headers: list, rows: list, col_widths: list) -> io
     buf.seek(0)
     return buf
 
+# ── Helper: บันทึกรูปผู้สมัคร ───────────────────────────────
+
+ALLOWED_IMG_EXT = {".jpg", ".jpeg", ".png", ".gif", ".webp"}
+
+def _save_candidate_photo(file_storage):
+    """บันทึกไฟล์รูปผู้สมัคร → คืน URL path (/static/...) หรือ None ถ้าไม่มีไฟล์
+    raise ValueError ถ้านามสกุลไฟล์ไม่รองรับ"""
+    if not file_storage or not file_storage.filename:
+        return None
+    ext = os.path.splitext(file_storage.filename)[1].lower()
+    if ext not in ALLOWED_IMG_EXT:
+        raise ValueError("รองรับเฉพาะไฟล์รูป .jpg .jpeg .png .gif .webp")
+    upload_dir = os.path.join(current_app.static_folder, "uploads", "candidates")
+    os.makedirs(upload_dir, exist_ok=True)
+    fname = f"{uuid.uuid4().hex}{ext}"
+    file_storage.save(os.path.join(upload_dir, fname))
+    return f"/static/uploads/candidates/{fname}"
 
 # ── Dashboard ──────────────────────────────────────────────
 
@@ -204,8 +223,17 @@ def add_candidate(election_id: int):
     name      = request.form.get("name", "").strip()
     party     = request.form.get("party", "").strip()
     bio       = request.form.get("bio", "").strip()
-    photo_url = request.form.get("photo_url", "").strip()
     number    = request.form.get("number", type=int)
+    photo_url = request.form.get("photo_url", "").strip()
+
+    # อัปโหลดไฟล์ก่อน ถ้ามีไฟล์ ใช้ไฟล์แทน URL
+    try:
+        uploaded = _save_candidate_photo(request.files.get("photo"))
+    except ValueError as e:
+        flash(str(e), "danger")
+        return redirect(url_for("admin.manage_candidates", election_id=election_id))
+    if uploaded:
+        photo_url = uploaded
 
     if not name:
         flash("กรุณาระบุชื่อผู้สมัคร", "danger")
@@ -232,14 +260,27 @@ def edit_candidate(candidate_id: int):
     party     = request.form.get("party", "").strip()
     bio       = request.form.get("bio", "").strip()
     number    = request.form.get("number", type=int)
-    photo_url = request.form.get("photo_url", "").strip()
+    photo_url_text = request.form.get("photo_url", "").strip()
 
     if not name:
         flash("กรุณาระบุชื่อผู้สมัคร", "danger")
         return redirect(url_for("admin.manage_candidates", election_id=candidate.election_id))
 
+    try:
+        uploaded = _save_candidate_photo(request.files.get("photo"))
+    except ValueError as e:
+        flash(str(e), "danger")
+        return redirect(url_for("admin.manage_candidates", election_id=candidate.election_id))
+
+    if uploaded:
+        new_photo = uploaded          # อัปโหลดไฟล์ใหม่
+    elif photo_url_text:
+        new_photo = photo_url_text    # ใส่ URL
+    else:
+        new_photo = None              # ไม่กรอกอะไร → คงรูปเดิมไว้
+
     candidate.update(
-        name, party=party, bio=bio, photo_url=photo_url, number=number,
+        name, party=party, bio=bio, photo_url=new_photo, number=number,
     )
     flash("แก้ไขข้อมูลผู้สมัครแล้ว", "success")
     return redirect(url_for("admin.manage_candidates", election_id=candidate.election_id))

@@ -17,7 +17,7 @@
     <span style="font-size:13px; font-weight:500;">เพิ่มผู้สมัคร</span>
   </div>
   <div class="card-body">
-    <form method="POST" action="{{ url_for('admin.add_candidate', election_id=election.id) }}">
+    <form method="POST" action="{{ url_for('admin.add_candidate', election_id=election.id) }}" enctype="multipart/form-data">
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
       <div style="display:grid; grid-template-columns:80px 1fr 1fr; gap:12px; margin-bottom:12px;">
         <div class="form-group" style="margin:0;">
@@ -38,9 +38,17 @@
         <textarea id="bio" name="bio" class="form-control" rows="2"
                   placeholder="รายละเอียด นโยบาย ประวัติ ฯลฯ"></textarea>
       </div>
-      <div class="form-group" style="margin-bottom:0;">
-        <label for="photo_url">URL รูปภาพ</label>
-        <input type="url" id="photo_url" name="photo_url" class="form-control" placeholder="https://..." />
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-top:14px;">
+        <div class="form-group" style="margin:0;">
+          <label for="photo">อัปโหลดรูป (ไฟล์)</label>
+          <input type="file" id="photo" name="photo" class="form-control" accept="image/*" />
+          <div class="form-hint">.jpg .png .gif .webp</div>
+        </div>
+        <div class="form-group" style="margin:0;">
+          <label for="photo_url">หรือใส่ URL รูปภาพ</label>
+          <input type="url" id="photo_url" name="photo_url" class="form-control" placeholder="https://..." />
+          <div class="form-hint">ถ้าอัปโหลดไฟล์ด้วย ระบบจะใช้ไฟล์ก่อน</div>
+        </div>
       </div>
       <button type="submit" class="btn btn-primary btn-sm mt-2" style="margin-top:14px;">+ เพิ่มผู้สมัคร</button>
     </form>
@@ -90,7 +98,7 @@
         {# Inline edit row #}
         <tr id="edit-{{ c.id }}" style="display:none; background:var(--sky-light);">
           <td colspan="5" style="padding:14px 16px;">
-            <form method="POST" action="{{ url_for('admin.edit_candidate', candidate_id=c.id) }}">
+            <form method="POST" action="{{ url_for('admin.edit_candidate', candidate_id=c.id) }}" enctype="multipart/form-data">
               <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
               <div style="display:grid; grid-template-columns:80px 1fr 1fr; gap:10px; margin-bottom:10px;">
                 <div>
@@ -109,6 +117,24 @@
               <div style="margin-bottom:12px;">
                 <label style="font-size:11px;">นโยบาย/ประวัติ</label>
                 <textarea name="bio" class="form-control" rows="2">{{ c.bio or '' }}</textarea>
+              </div>
+              <div style="display:grid; grid-template-columns:auto 1fr 1fr; gap:10px; align-items:end; margin-bottom:12px;">
+                <div>
+                  <label style="font-size:11px;">รูปปัจจุบัน</label>
+                  {% if c.photo_url %}
+                    <img src="{{ c.photo_url }}" alt="" style="width:48px; height:48px; object-fit:cover; border-radius:8px; border:1px solid var(--border); display:block;" />
+                  {% else %}
+                    <div style="width:48px;height:48px;border-radius:8px;background:var(--sky-light);display:flex;align-items:center;justify-content:center;color:var(--text-3);font-size:10px;">ไม่มี</div>
+                  {% endif %}
+                </div>
+                <div>
+                  <label style="font-size:11px;">อัปโหลดรูปใหม่ (ไฟล์)</label>
+                  <input type="file" name="photo" class="form-control" accept="image/*" />
+                </div>
+                <div>
+                  <label style="font-size:11px;">หรือ URL รูปภาพ</label>
+                  <input type="url" name="photo_url" class="form-control" value="{{ c.photo_url or '' }}" placeholder="https://..." />
+                </div>
               </div>
               <div style="display:flex; gap:8px;">
                 <button type="submit" class="btn btn-primary btn-sm">บันทึก</button>
