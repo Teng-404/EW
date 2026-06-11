@@ -79,7 +79,7 @@
             <div style="display:flex; gap:6px;">
               <button onclick="toggleEdit({{ c.id }})" class="btn btn-outline btn-sm">แก้ไข</button>
               <form method="POST" action="{{ url_for('admin.delete_candidate', candidate_id=c.id) }}" style="display:inline;"
-                    onsubmit="return confirm('ลบผู้สมัคร {{ c.name }}?')">
+                    data-confirm="ลบผู้สมัคร {{ c.name }}?" data-confirm-danger>
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
                 <button type="submit" class="btn btn-danger btn-sm">ลบ</button>
               </form>

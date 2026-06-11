@@ -19,6 +19,9 @@
   sup.textContent =
     '.confirm-modal-icon.is-danger{background:var(--red-bg);}' +
     '.confirm-modal-icon.is-danger svg{stroke:var(--red);}' +
+    '.confirm-modal.appdlg{text-align:center;}' +
+    '.confirm-modal.appdlg .confirm-modal-icon{margin-left:auto;margin-right:auto;}' +
+    '.confirm-modal.appdlg h2{text-align:center;}' +
     '.confirm-modal p.appdlg-msg{white-space:pre-line;text-align:center;}';
   document.head.appendChild(sup);
 
@@ -47,7 +50,7 @@
       ov.setAttribute('role', 'dialog');
       ov.setAttribute('aria-modal', 'true');
       ov.innerHTML =
-        '<div class="confirm-modal">' +
+        '<div class="confirm-modal appdlg">' +
           '<div class="confirm-modal-icon ' + (danger ? 'is-danger' : '') + '">' +
             '<svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' +
               (danger ? ICON.danger : ICON.normal) +
@@ -56,8 +59,8 @@
           '<h2>' + esc(title) + '</h2>' +
           '<p class="appdlg-msg">' + esc(opt.message) + '</p>' +
           '<div class="btn-row">' +
-            (isAlert ? '' : '<button type="button" class="btn btn-ghost" data-act="cancel">' + esc(cnTxt) + '</button>') +
             '<button type="button" class="btn ' + (danger ? 'btn-danger' : 'btn-primary') + '" data-act="ok">' + esc(okTxt) + '</button>' +
+            (isAlert ? '' : '<button type="button" class="btn btn-ghost" data-act="cancel">' + esc(cnTxt) + '</button>') +
           '</div>' +
         '</div>';
 

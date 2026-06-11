@@ -35,6 +35,7 @@ from models.vote           import Vote, Turnout
 from models.member         import Member
 from models.system_setting import SystemSetting
 from models.access_log     import AccessLog
+from routes.export_utils   import make_table_response
 
 admin_bp = Blueprint("admin", __name__)
 
@@ -447,32 +448,6 @@ def logs():
     )
 
 
-@admin_bp.route("/logs/export")
-@admin_required
-def export_logs():
-    rows_raw = AccessLog.get_all_raw(limit=5000)
-    rows = [
-        (
-            r.get("member_name", ""),
-            r.get("action", ""),
-            r.get("ip_address", ""),
-            r.get("system_type", ""),
-            str(r.get("logged_at", "")),
-        )
-        for r in rows_raw
-    ]
-    buf = _make_xlsx(
-        "Log",
-        ["ชื่อสมาชิก", "action", "IP", "ระบบ", "เวลา"],
-        rows,
-        [25, 20, 18, 12, 22],
-    )
-    filename = f"logs_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx"
-    return send_file(buf,
-        mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        as_attachment=True, download_name=filename)
-
-
 # ── Reports ────────────────────────────────────────────────
 
 @admin_bp.route("/reports")
@@ -489,102 +464,6 @@ def reports():
         total_verified=total_verified,
         total_changed=total_changed,
     )
-
-
-@admin_bp.route("/reports/verified/export")
-@admin_required
-def export_verified():
-    members = Member.get_verified()
-    rows    = [(i + 1, m.full_name, m.email or "", m.email_new or "")
-               for i, m in enumerate(members)]
-    buf = _make_xlsx(
-        "ยืนยันตัวตนแล้ว",
-        ["ลำดับ", "ชื่อ-สกุล", "Email เดิม", "Email ใหม่"],
-        rows, [8, 30, 30, 30],
-    )
-    return send_file(buf,
-        mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        as_attachment=True,
-        download_name=f"verified_{datetime.now().strftime('%Y%m%d')}.xlsx")
-
-
-@admin_bp.route("/reports/email-changed/export")
-@admin_required
-def export_email_changed():
-    members = Member.get_email_changed()
-    rows    = [(i + 1, m.full_name, m.email or "", m.email_new or "")
-               for i, m in enumerate(members)]
-    buf = _make_xlsx(
-        "เปลี่ยน Email",
-        ["ลำดับ", "ชื่อ-สกุล", "Email เดิม", "Email ใหม่"],
-        rows, [8, 30, 30, 30],
-    )
-    return send_file(buf,
-        mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        as_attachment=True,
-        download_name=f"email_changed_{datetime.now().strftime('%Y%m%d')}.xlsx")
-
-
-@admin_bp.route("/reports/votes/export")
-@admin_required
-def export_votes():
-    """รายชื่อผู้มาใช้สิทธิ (ตรวจสอบได้) — ไม่มีข้อมูลว่าเลือกใคร"""
-    elections = Election.get_all()
-    rows = []
-    for e in elections:
-        for v in Turnout.list_by_election(e.id):
-            name = v.get("full_name") or f"#{v['member_id']}"
-            rows.append((e.title, name, str(v["voted_at"])))
-    buf = _make_xlsx(
-        "รายชื่อผู้มาใช้สิทธิ",
-        ["วาระ", "ชื่อ-สกุลผู้มาใช้สิทธิ", "เวลา"],
-        rows, [30, 30, 22],
-    )
-    return send_file(buf,
-        mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        as_attachment=True,
-        download_name=f"turnout_{datetime.now().strftime('%Y%m%d')}.xlsx")
-
-
-@admin_bp.route("/reports/summary/export")
-@admin_required
-def export_summary():
-    elections = Election.get_all()
-    rows = [
-        (e.title, e.type_label, e.status, Turnout.count_by_election(e.id))
-        for e in elections
-    ]
-    buf = _make_xlsx(
-        "สรุปจำนวนผู้มาลงคะแนน",
-        ["วาระ", "ประเภท", "สถานะ", "จำนวนผู้ลงคะแนน"],
-        rows, [30, 20, 12, 18],
-    )
-    return send_file(buf,
-        mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        as_attachment=True,
-        download_name=f"summary_{datetime.now().strftime('%Y%m%d')}.xlsx")
-
-
-@admin_bp.route("/reports/results/export")
-@admin_required
-def export_results_all():
-    elections = Election.get_all()
-    rows = []
-    for e in elections:
-        candidates = Candidate.get_by_election_with_votes(e.id)
-        total      = sum(c.vote_count for c in candidates)
-        for c in candidates:
-            pct = f"{round(c.vote_count / total * 100, 1)}%" if total else "0%"
-            rows.append((e.title, c.number, c.name, c.vote_count, pct))
-    buf = _make_xlsx(
-        "สรุปผลคะแนน",
-        ["วาระ", "หมายเลข", "ชื่อ", "คะแนน", "เปอร์เซ็นต์"],
-        rows, [30, 10, 30, 12, 12],
-    )
-    return send_file(buf,
-        mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        as_attachment=True,
-        download_name=f"results_all_{datetime.now().strftime('%Y%m%d')}.xlsx")
 
 
 # ── Reset ──────────────────────────────────────────────────
@@ -616,3 +495,112 @@ def reset():
 @admin_bp.errorhandler(403)
 def forbidden(e):
     return render_template("errors/403.html"), 403
+
+# ── Logs export ────────────────────────────────────────────
+@admin_bp.route("/logs/export")
+@admin_required
+def export_logs():
+    fmt = request.args.get("format", "excel")
+    rows_raw = AccessLog.get_all_raw(limit=5000)
+    rows = [
+        (r.get("member_name", ""), r.get("action", ""), r.get("ip_address", ""),
+         r.get("system_type", ""), str(r.get("logged_at", "")))
+        for r in rows_raw
+    ]
+    return make_table_response(
+        fmt,
+        sheet_title="Log การใช้งาน",
+        headers=["ชื่อสมาชิก", "action", "IP", "ระบบ", "เวลา"],
+        rows=rows, col_widths=[25, 20, 18, 12, 22],
+        filename_base="logs",
+    )
+
+
+# ── Reports ────────────────────────────────────────────────
+@admin_bp.route("/reports/verified/export")
+@admin_required
+def export_verified():
+    fmt = request.args.get("format", "excel")
+    members = Member.get_verified()
+    rows = [(i + 1, m.full_name, m.email or "", m.email_new or "")
+            for i, m in enumerate(members)]
+    return make_table_response(
+        fmt,
+        sheet_title="ยืนยันตัวตนแล้ว",
+        headers=["ลำดับ", "ชื่อ-สกุล", "Email เดิม", "Email ใหม่"],
+        rows=rows, col_widths=[8, 30, 30, 30],
+        filename_base="verified",
+    )
+
+
+@admin_bp.route("/reports/email-changed/export")
+@admin_required
+def export_email_changed():
+    fmt = request.args.get("format", "excel")
+    members = Member.get_email_changed()
+    rows = [(i + 1, m.full_name, m.email or "", m.email_new or "")
+            for i, m in enumerate(members)]
+    return make_table_response(
+        fmt,
+        sheet_title="เปลี่ยน Email",
+        headers=["ลำดับ", "ชื่อ-สกุล", "Email เดิม", "Email ใหม่"],
+        rows=rows, col_widths=[8, 30, 30, 30],
+        filename_base="email_changed",
+    )
+
+
+@admin_bp.route("/reports/votes/export")
+@admin_required
+def export_votes():
+    """รายชื่อผู้มาใช้สิทธิ (ตรวจสอบได้) — ไม่มีข้อมูลว่าเลือกใคร"""
+    fmt = request.args.get("format", "excel")
+    elections = Election.get_all()
+    rows = []
+    for e in elections:
+        for v in Turnout.list_by_election(e.id):
+            name = v.get("full_name") or f"#{v['member_id']}"
+            rows.append((e.title, name, str(v["voted_at"])))
+    return make_table_response(
+        fmt,
+        sheet_title="รายชื่อผู้มาใช้สิทธิ",
+        headers=["วาระ", "ชื่อ-สกุลผู้มาใช้สิทธิ", "เวลา"],
+        rows=rows, col_widths=[30, 30, 22],
+        filename_base="turnout",
+    )
+
+
+@admin_bp.route("/reports/summary/export")
+@admin_required
+def export_summary():
+    fmt = request.args.get("format", "excel")
+    elections = Election.get_all()
+    rows = [(e.title, e.type_label, e.status, Turnout.count_by_election(e.id))
+            for e in elections]
+    return make_table_response(
+        fmt,
+        sheet_title="สรุปจำนวนผู้มาลงคะแนน",
+        headers=["วาระ", "ประเภท", "สถานะ", "จำนวนผู้ลงคะแนน"],
+        rows=rows, col_widths=[30, 20, 12, 18],
+        filename_base="summary",
+    )
+
+
+@admin_bp.route("/reports/results/export")
+@admin_required
+def export_results_all():
+    fmt = request.args.get("format", "excel")
+    elections = Election.get_all()
+    rows = []
+    for e in elections:
+        candidates = Candidate.get_by_election_with_votes(e.id)
+        total = sum(c.vote_count for c in candidates)
+        for c in candidates:
+            pct = f"{round(c.vote_count / total * 100, 1)}%" if total else "0%"
+            rows.append((e.title, c.number, c.name, c.vote_count, pct))
+    return make_table_response(
+        fmt,
+        sheet_title="สรุปผลคะแนน",
+        headers=["วาระ", "หมายเลข", "ชื่อ", "คะแนน", "เปอร์เซ็นต์"],
+        rows=rows, col_widths=[30, 10, 30, 12, 12],
+        filename_base="results_all",
+    )
