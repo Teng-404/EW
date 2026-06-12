@@ -12,6 +12,12 @@ GET       /results/json               — JSON สำหรับ Chart.js
 หมายเหตุความลับ/ความโปร่งใส:
   - ตรวจการมาใช้สิทธิ + กันลงคะแนนซ้ำ → ใช้ Turnout (เก็บ member_id จริง)
   - บันทึกผลการลงคะแนน               → ใช้ Vote.cast_secret (ไม่ผูกกับผู้ลงคะแนน)
+
+หมายเหตุ OTP (ปรับใหม่):
+  - 1 OTP = ลงคะแนนได้ 1 ครั้ง — ใช้ flag session["vote_authorized"]
+    ตั้งค่าเมื่อยืนยัน OTP สำเร็จ และถูกล้างทันทีหลังลงคะแนนสำเร็จ
+  - session["vote_member_id"] เก็บ "ตัวตน" คงไว้ (ใช้แสดงสถานะ/กันลงซ้ำ)
+    แต่ลำพังตัวตนอย่างเดียวลงคะแนนไม่ได้ ต้องมี vote_authorized ด้วย
 """
 
 import smtplib
@@ -93,12 +99,16 @@ def _login_guard():
 
 
 def _ballot_guard():
-    """ตรวจ session vote_member_id — ต้องล็อกอิน + ผ่าน OTP ก่อน"""
+    """ต้องล็อกอิน + ผ่าน OTP + ยังมีสิทธิ์ลงคะแนนที่ยังไม่ถูกใช้"""
     redir = _login_guard()
     if redir:
         return redir
     if not session.get("vote_member_id"):
         flash("กรุณายืนยัน OTP ก่อนลงคะแนน", "warning")
+        return redirect(url_for("vote.request_otp"))
+    # ★ OTP ก่อนหน้าถูกใช้ไปแล้ว — การลงคะแนนครั้งใหม่ต้องขอ OTP ใหม่
+    if not session.get("vote_authorized"):
+        flash("กรุณาขอ OTP ใหม่สำหรับการลงคะแนนครั้งนี้", "warning")
         return redirect(url_for("vote.request_otp"))
     return None
 
@@ -180,7 +190,8 @@ def verify_otp():
         code = request.form.get("otp", "").strip()
         if OTP.verify_for_member(member_id, code, purpose="vote"):
             session.pop("vote_pending_member_id", None)
-            session["vote_member_id"] = member_id
+            session["vote_member_id"]  = member_id   # ตัวตน (คงไว้เพื่อแสดงสถานะ/กันซ้ำ)
+            session["vote_authorized"] = True        # ★ สิทธิ์ลงคะแนน 1 ครั้งต่อ 1 OTP
             AccessLog.log("vote_otp_verified", _client_ip(), "vote", member_id)
             return redirect(url_for("vote.index"))
         else:
@@ -270,6 +281,8 @@ def ballot_submit(election_id: int):
         # 2) บันทึกการมาใช้สิทธิ (ตรวจสอบได้ — กันลงคะแนนซ้ำ)
         Turnout.record(member_id, election.id)
         AccessLog.log(f"voted_{election.type}_{election.id}", _client_ip(), "vote", member_id)
+        # 3) ★ ใช้สิทธิ์ OTP นี้แล้ว — วาระถัดไปต้องขอ OTP ใหม่
+        session.pop("vote_authorized", None)
         flash("ลงคะแนนสำเร็จ!", "success")
     except Exception:
         flash("เกิดข้อผิดพลาด ไม่สามารถบันทึกคะแนนได้", "danger")

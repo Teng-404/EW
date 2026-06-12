@@ -14,7 +14,7 @@
   {% if data | length == 1 and data[0].election.is_open %}
     {% set e1 = data[0].election %}
     {% if current_user.is_authenticated %}
-      {% if session.get('vote_member_id') %}
+      {% if session.get('vote_authorized') %}
         <a href="{{ url_for('vote.ballot_detail', election_id=e1.id) }}" class="btn btn-outline btn-sm">ลงคะแนน →</a>
       {% else %}
         <a href="{{ url_for('vote.request_otp') }}" class="btn btn-outline btn-sm">ลงคะแนน →</a>
@@ -22,7 +22,7 @@
     {% else %}
       <a href="{{ url_for('auth.login', next=url_for('vote.request_otp')) }}" class="btn btn-outline btn-sm">ลงคะแนน →</a>
     {% endif %}
-  {% elif session.get('vote_member_id') %}
+  {% elif session.get('vote_authorized') %}
     <a href="{{ url_for('vote.ballot') }}" class="btn btn-outline btn-sm">← กลับลงคะแนน</a>
   {% else %}
     <a href="{{ url_for('vote.request_otp') }}" class="btn btn-outline btn-sm">ลงคะแนน →</a>

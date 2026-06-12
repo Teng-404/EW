@@ -48,7 +48,9 @@
                 ใช้สิทธิ์แล้ว
               </span>
             {% elif current_user.is_authenticated %}
-              {% if session.get('vote_member_id') %}
+              {# ★ ต้องมีสิทธิ์ OTP ที่ยังไม่ถูกใช้ (vote_authorized) จึงเข้าบัตรได้ตรง
+                   มิฉะนั้นพากลับไปขอ OTP ใหม่ — แต่ละวาระต้องขอ OTP แยกกัน #}
+              {% if session.get('vote_authorized') %}
                 <a href="{{ url_for('vote.ballot_detail', election_id=election.id) }}" class="btn btn-sky btn-sm">
                   ลงคะแนน →
                 </a>
