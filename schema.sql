@@ -1,5 +1,5 @@
 -- ============================================================
--- Election Web — Database Schema  (README v2)
+-- Election Web — Database Schema  (README v3 — corrected)
 -- MySQL 8.0+  |  charset: utf8mb4
 -- ============================================================
 
@@ -34,7 +34,9 @@ CREATE TABLE IF NOT EXISTS members (
     verified   BOOLEAN      NOT NULL DEFAULT FALSE,
     created_at DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
-    INDEX idx_members_email (email)
+    INDEX idx_members_email     (email),
+    INDEX idx_members_email_new (email_new),
+    INDEX idx_members_fullname  (full_name)
 );
 
 -- ── การเลือกตั้ง (แยกตามประเภท) ────────────────────────────
@@ -55,15 +57,14 @@ CREATE TABLE IF NOT EXISTS elections (
     FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE SET NULL
 );
 
-ALTER TABLE candidates
-    ADD COLUMN party VARCHAR(100) AFTER name,
-    ADD COLUMN bio   TEXT         AFTER party;
-
 -- ── ผู้สมัคร ────────────────────────────────────────────────
+-- party + bio รวมในตารางตั้งแต่ต้น (โค้ด candidate.py ใช้ทั้งคู่)
 CREATE TABLE IF NOT EXISTS candidates (
     id          INT          AUTO_INCREMENT PRIMARY KEY,
     election_id INT          NOT NULL,
     name        VARCHAR(100) NOT NULL,
+    party       VARCHAR(100),
+    bio         TEXT,
     photo_url   VARCHAR(255),
     number      INT          NOT NULL,
     created_at  DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -73,19 +74,32 @@ CREATE TABLE IF NOT EXISTS candidates (
     FOREIGN KEY (election_id) REFERENCES elections(id) ON DELETE CASCADE
 );
 
--- ── คะแนนเสียง (เข้ารหัสผู้เลือก) ──────────────────────────
+-- ── บัตรลงคะแนน (ลับ — ไม่ผูกกับผู้ลงคะแนน) ─────────────────
+-- ตรวจนับผลได้ แต่ย้อนกลับไปหาผู้ลงคะแนนไม่ได้
 CREATE TABLE IF NOT EXISTS votes (
-    id              INT          AUTO_INCREMENT PRIMARY KEY,
-    member_id_hash  VARCHAR(255) NOT NULL,
-    candidate_id    INT          NOT NULL,
-    election_id     INT          NOT NULL,
-    voted_at        DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    id           INT      AUTO_INCREMENT PRIMARY KEY,
+    candidate_id INT      NOT NULL,
+    election_id  INT      NOT NULL,
+    voted_at     DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
-    UNIQUE KEY uq_votes_member_election (member_id_hash, election_id),
     INDEX idx_votes_election  (election_id),
     INDEX idx_votes_candidate (candidate_id),
     FOREIGN KEY (candidate_id) REFERENCES candidates(id) ON DELETE CASCADE,
     FOREIGN KEY (election_id)  REFERENCES elections(id)  ON DELETE CASCADE
+);
+
+-- ── การมาใช้สิทธิ (โปร่งใส — ตรวจสอบได้/กันลงคะแนนซ้ำ) ──────
+-- เก็บ member_id จริง + เวลา แยกจากบัตรลงคะแนนโดยสิ้นเชิง
+CREATE TABLE IF NOT EXISTS vote_turnout (
+    id          INT      AUTO_INCREMENT PRIMARY KEY,
+    member_id   INT      NOT NULL,
+    election_id INT      NOT NULL,
+    voted_at    DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    UNIQUE KEY uq_turnout_member_election (member_id, election_id),
+    INDEX idx_turnout_election (election_id),
+    FOREIGN KEY (member_id)   REFERENCES members(id)   ON DELETE CASCADE,
+    FOREIGN KEY (election_id) REFERENCES elections(id) ON DELETE CASCADE
 );
 
 -- ── OTP ──────────────────────────────────────────────────────
@@ -123,7 +137,8 @@ CREATE TABLE IF NOT EXISTS system_settings (
     id          INT          AUTO_INCREMENT PRIMARY KEY,
     setting_key VARCHAR(50)  NOT NULL UNIQUE,
     value       VARCHAR(255) NOT NULL DEFAULT '1',
-    updated_at  DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+    updated_at  DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP
+                             ON UPDATE CURRENT_TIMESTAMP
 );
 
 INSERT IGNORE INTO system_settings (setting_key, value) VALUES
