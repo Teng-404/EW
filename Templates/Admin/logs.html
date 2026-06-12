@@ -20,7 +20,7 @@
   <div class="card-body">
     <div class="grid-4 gap-2">
       <div>
-        <label class="form-label">ค้นหาชื่อ/เลขสมาชิก</label>
+        <label class="form-label">ค้นหาชื่อ/action</label>
         <input type="text" name="keyword" value="{{ keyword }}" class="form-control" placeholder="ค้นหา…">
       </div>
       <div>
@@ -56,7 +56,6 @@
             <th>Action</th>
             <th>ระบบ</th>
             <th>IP</th>
-            <th>รายละเอียด</th>
             <th>เวลา</th>
           </tr>
         </thead>
@@ -64,23 +63,22 @@
           {% for log in logs %}
           <tr>
             <td class="text-muted" style="font-size:12px;">{{ loop.index }}</td>
-            <td>{{ log.member_no or '—' }}</td>
-            <td>{{ log.full_name or '—' }}</td>
+            <td>{{ log.member_id or '—' }}</td>
+            <td>{{ log.member_name or '—' }}</td>
             <td>
-              <span class="badge badge-{% if log.action == 'vote' %}open{% elif log.action == 'verify' %}pending{% else %}closed{% endif %}">
+              <span class="badge badge-{% if 'vote' in log.action %}open{% elif 'verify' in log.action %}pending{% else %}closed{% endif %}">
                 {{ log.action }}
               </span>
             </td>
             <td class="text-muted">{{ log.system_type or '—' }}</td>
             <td style="font-family:monospace;font-size:12px;">{{ log.ip_address }}</td>
-            <td class="text-muted" style="font-size:12px;">{{ log.detail or '' }}</td>
             <td style="white-space:nowrap;font-size:12px;">
               {{ log.logged_at.strftime('%d/%m/%Y %H:%M') if log.logged_at else '—' }}
             </td>
           </tr>
           {% else %}
           <tr>
-            <td colspan="8" class="text-center text-muted" style="padding:24px;">ไม่พบข้อมูล Log</td>
+            <td colspan="7" class="text-center text-muted" style="padding:24px;">ไม่พบข้อมูล Log</td>
           </tr>
           {% endfor %}
         </tbody>

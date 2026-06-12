@@ -8,7 +8,7 @@
       <svg style="width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round" viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
       จัดการวาระ
     </a>
-    <h1>ผู้ลงคะแนน</h1>
+    <h1>ผู้มาใช้สิทธิ</h1>
     <p style="font-size:13px; color:var(--text-3); margin-top:4px;">{{ election.title }} — {{ voters | length }} คนที่ลงคะแนนแล้ว</p>
   </div>
   <a href="{{ url_for('admin.export_voters', election_id=election.id) }}" class="btn btn-primary btn-sm">
@@ -23,8 +23,8 @@
       <thead>
         <tr>
           <th>ลำดับ</th>
+          <th>เลขสมาชิก</th>
           <th>ชื่อ-นามสกุล</th>
-          <th>ชื่อผู้ใช้</th>
           <th>เวลาที่ลงคะแนน</th>
         </tr>
       </thead>
@@ -32,9 +32,11 @@
         {% for v in voters %}
         <tr>
           <td style="color:var(--text-3); font-size:12px;">{{ loop.index }}</td>
-          <td style="font-weight:500;">{{ v.full_name }}</td>
-          <td style="color:var(--text-3); font-size:12px;">{{ v.username }}</td>
-          <td style="font-size:12px; color:var(--text-2);">{{ v.voted_at.strftime('%d/%m/%Y %H:%M:%S') }}</td>
+          <td style="color:var(--text-3); font-size:12px;">{{ v.member_id }}</td>
+          <td style="font-weight:500;">{{ v.full_name or '—' }}</td>
+          <td style="font-size:12px; color:var(--text-2);">
+            {{ v.voted_at.strftime('%d/%m/%Y %H:%M:%S') if v.voted_at else '—' }}
+          </td>
         </tr>
         {% endfor %}
       </tbody>

@@ -1,17 +1,20 @@
 """
-routes/admin.py — Admin Blueprint  (README v3)
+routes/admin.py — Admin Blueprint  (README v3 — patched)
 
-เพิ่มจากเดิม:
+แก้ไขจากเดิม:
+  - create_user()  — ส่งต่อ role ที่เลือกจากฟอร์ม (เดิมสร้างเป็น voter เสมอ)
+  - เพิ่ม manage_voters() + export_voters() — รองรับหน้า/ลิงก์ admin.export_voters
+    ที่ voters.html เรียกใช้ (เดิมไม่มี route → หน้า crash)
+
+เส้นทางหลัก:
   GET/POST  /admin/members/import      — นำเข้า Excel สมาชิก
   GET/POST  /admin/system              — เปิด/ระงับแต่ละระบบ
   GET       /admin/logs                — ดู Log การใช้งาน
-  GET       /admin/logs/export         — export Log เป็น Excel
+  GET       /admin/logs/export         — export Log เป็น Excel/PDF
   GET       /admin/reports             — รายงานทั้งหมด
-  GET       /admin/reports/verified/export
-  GET       /admin/reports/email-changed/export
-  GET       /admin/reports/votes/export        — รายชื่อผู้มาใช้สิทธิ (ตรวจสอบได้)
-  GET       /admin/reports/summary/export      — จำนวนผู้มาใช้สิทธิ
-  GET       /admin/reports/results/export      — สรุปผลคะแนน (ลับ/นับได้)
+  GET       /admin/reports/*/export    — รายงานต่าง ๆ
+  GET       /admin/elections/<id>/voters         — รายชื่อผู้มาใช้สิทธิ
+  GET       /admin/elections/<id>/voters/export  — export ผู้มาใช้สิทธิ
   POST      /admin/reset               — ลบข้อมูลผลเลือกตั้งและยืนยันตัวตน
 
 หมายเหตุ v3 — ความลับ/ความโปร่งใส:
@@ -323,6 +326,41 @@ def export_results(election_id: int):
         as_attachment=True, download_name=filename)
 
 
+# ── Voters (ผู้มาใช้สิทธิ — ตรวจสอบได้) ─────────────────────
+
+@admin_bp.route("/elections/<int:election_id>/voters")
+@admin_required
+def manage_voters(election_id: int):
+    """รายชื่อผู้มาใช้สิทธิในวาระ — ดึงจาก Turnout (member จริง)"""
+    election = Election.get_by_id(election_id)
+    if not election:
+        abort(404)
+    voters = Turnout.list_by_election(election_id)
+    return render_template("admin/voters.html", election=election, voters=voters)
+
+
+@admin_bp.route("/elections/<int:election_id>/voters/export")
+@admin_required
+def export_voters(election_id: int):
+    """export รายชื่อผู้มาใช้สิทธิ (Excel/PDF)"""
+    fmt = request.args.get("format", "excel")
+    election = Election.get_by_id(election_id)
+    if not election:
+        abort(404)
+    voters = Turnout.list_by_election(election_id)
+    rows = [
+        (i + 1, v.get("full_name") or f"#{v['member_id']}", str(v.get("voted_at", "")))
+        for i, v in enumerate(voters)
+    ]
+    return make_table_response(
+        fmt,
+        sheet_title="ผู้มาใช้สิทธิ",
+        headers=["ลำดับ", "ชื่อ-สกุล", "เวลาที่ลงคะแนน"],
+        rows=rows, col_widths=[8, 30, 22],
+        filename_base=f"voters_{election_id}",
+    )
+
+
 # ── Users Management ───────────────────────────────────────
 
 @admin_bp.route("/users")
@@ -345,8 +383,15 @@ def create_user():
     if not all([username, email, full_name, password]):
         flash("กรุณากรอกข้อมูลให้ครบ", "danger")
         return redirect(url_for("admin.manage_users"))
-    User.create(username, email, password, full_name)
-    flash(f"เพิ่มผู้ใช้งาน '{username}' แล้ว", "success")
+
+    user = User.create(username, email, password, full_name)
+    # ★ User.create() สร้างเป็น voter เสมอ — ถ้าเลือก admin ต้องตั้ง role ต่อ
+    if role == "admin":
+        try:
+            user.set_role("admin")
+        except ValueError:
+            pass
+    flash(f"เพิ่มผู้ใช้งาน '{username}' ({role}) แล้ว", "success")
     return redirect(url_for("admin.manage_users"))
 
 

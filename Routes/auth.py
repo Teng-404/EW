@@ -1,54 +1,29 @@
 """
-routes/auth.py — Authentication Blueprint
+routes/auth.py — Authentication Blueprint  (patched)
 
 GET/POST /login        — เข้าสู่ระบบ
 GET/POST /register     — สมัครสมาชิก
 GET      /logout       — ออกจากระบบ
-GET/POST /verify-otp   — ยืนยัน OTP ก่อน vote
-"""
 
-import smtplib
-from email.mime.text import MIMEText
+หมายเหตุการแก้ไข:
+  - ลบ /request-otp/<id> และ /verify-otp ออก
+    เดิมเป็น OTP flow แบบ user-based ที่อ้างถึง endpoint ที่ไม่มีจริง
+    (vote.cast_vote, vote.results(election_id=...), current_user.has_voted)
+    flow การยืนยัน OTP จริงอยู่ใน verify_bp (ยืนยันตัวตน) + vote_bp (ลงคะแนน)
+    แบบ member-based ทั้งหมดแล้ว — โค้ดเก่าจึงเป็น dead code ที่ทำให้สับสน
+  - หากมีไฟล์ templates/auth/verify_otp.html ค้างอยู่ สามารถลบทิ้งได้
+    (ไม่มี route ใดเรนเดอร์อีกต่อไป)
+"""
 
 from flask import (
     Blueprint, render_template, redirect, url_for,
-    flash, request, session, current_app,
+    flash, request, session,
 )
 from flask_login import login_user, logout_user, login_required, current_user
 
 from models.user import User
-from models.vote import OTP
 
 auth_bp = Blueprint("auth", __name__)
-
-
-# ── Helpers ────────────────────────────────────────────────
-
-def _send_otp_email(to_email: str, code: str) -> None:
-    """ส่ง OTP ทาง email — ถ้าไม่มี MAIL_USERNAME ให้ print ใน dev"""
-    cfg = current_app.config
-    if not cfg.get("MAIL_USERNAME"):
-        current_app.logger.warning(f"[DEV] OTP for {to_email}: {code}")
-        return
-
-    msg = MIMEText(
-        f"รหัส OTP ของคุณสำหรับการลงคะแนน: {code}\n\nรหัสนี้จะหมดอายุใน 5 นาที",
-        "plain",
-        "utf-8",
-    )
-    msg["Subject"] = f"[Election Web] รหัส OTP: {code}"
-    msg["From"]    = cfg["MAIL_USERNAME"]
-    msg["To"]      = to_email
-
-    try:
-        with smtplib.SMTP(cfg["MAIL_SERVER"], cfg["MAIL_PORT"]) as smtp:
-            if cfg.get("MAIL_USE_TLS"):
-                smtp.starttls()
-            smtp.login(cfg["MAIL_USERNAME"], cfg["MAIL_PASSWORD"])
-            smtp.sendmail(cfg["MAIL_USERNAME"], to_email, msg.as_string())
-    except Exception as e:
-        current_app.logger.error(f"ส่ง OTP ล้มเหลว: {e}")
-        raise
 
 
 # ── Register ───────────────────────────────────────────────
@@ -135,55 +110,3 @@ def logout():
     session.clear()
     flash("ออกจากระบบแล้ว", "info")
     return redirect(url_for("auth.login"))
-
-# ── OTP — ขอรหัส ───────────────────────────────────────────
-
-@auth_bp.route("/request-otp/<int:election_id>")
-@login_required
-def request_otp(election_id: int):
-    """สร้าง OTP และส่งให้ user — เรียกก่อนเข้าหน้า vote"""
-    from models.election import Election
-
-    election = Election.get_by_id(election_id)
-    if not election or not election.is_open:
-        flash("การเลือกตั้งนี้ไม่ได้เปิดรับการลงคะแนน", "warning")
-        return redirect(url_for("vote.index"))
-
-    if current_user.has_voted(election_id):
-        flash("คุณได้ลงคะแนนในวาระนี้แล้ว", "info")
-        return redirect(url_for("vote.results", election_id=election_id))
-
-    code = OTP.create(current_user.id, purpose="vote")
-    try:
-        _send_otp_email(current_user.email, code)
-        flash(f"ส่งรหัส OTP ไปยัง {current_user.email} แล้ว", "info")
-    except Exception:
-        flash("ส่ง OTP ไม่สำเร็จ กรุณาลองใหม่", "danger")
-        return redirect(url_for("vote.index"))
-
-    # เก็บ election_id ใน session เพื่อใช้ใน verify_otp
-    session["otp_election_id"] = election_id
-    return redirect(url_for("auth.verify_otp"))
-
-
-# ── OTP — ยืนยันรหัส ───────────────────────────────────────
-
-@auth_bp.route("/verify-otp", methods=["GET", "POST"])
-@login_required
-def verify_otp():
-    election_id = session.get("otp_election_id")
-    if not election_id:
-        flash("ไม่พบข้อมูลการลงคะแนน กรุณาเริ่มใหม่", "warning")
-        return redirect(url_for("vote.index"))
-
-    if request.method == "POST":
-        code = request.form.get("otp_code", "").strip()
-
-        if OTP.verify(current_user.id, code, purpose="vote"):
-            session["otp_verified_election"] = election_id
-            session.pop("otp_election_id", None)
-            return redirect(url_for("vote.cast_vote", election_id=election_id))
-
-        flash("รหัส OTP ไม่ถูกต้องหรือหมดอายุแล้ว", "danger")
-
-    return render_template("auth/verify_otp.html", election_id=election_id)
