@@ -18,6 +18,8 @@ GET       /results/json               — JSON สำหรับ Chart.js
     ตั้งค่าเมื่อยืนยัน OTP สำเร็จ และถูกล้างทันทีหลังลงคะแนนสำเร็จ
   - session["vote_member_id"] เก็บ "ตัวตน" คงไว้ (ใช้แสดงสถานะ/กันลงซ้ำ)
     แต่ลำพังตัวตนอย่างเดียวลงคะแนนไม่ได้ ต้องมี vote_authorized ด้วย
+  - ★ ขอ OTP ได้เฉพาะอีเมลของตัวเอง (อีเมลที่ใช้เข้าสู่ระบบ) เท่านั้น
+    ถ้ากรอกอีเมลของคนอื่น ระบบจะไม่ส่ง OTP
 """
 
 import smtplib
@@ -130,6 +132,15 @@ def request_otp():
         email = request.form.get("email", "").strip().lower()
         if not email:
             flash("กรุณากรอก Email", "danger")
+            return render_template("vote_request_otp.html")
+
+        # ★ ข้อกำหนด: ขอ OTP ได้เฉพาะอีเมลของตัวเองเท่านั้น
+        #   ผ่าน _login_guard มาแล้ว จึงมั่นใจว่ามี current_user เสมอ
+        #   ถ้าอีเมลที่กรอกไม่ตรงกับอีเมลที่ใช้เข้าสู่ระบบ → ไม่ส่ง OTP
+        own_email = (current_user.email or "").strip().lower()
+        if email != own_email:
+            flash("ขอ OTP ได้เฉพาะอีเมลของตัวเองที่ใช้เข้าสู่ระบบเท่านั้น", "danger")
+            AccessLog.log("request_vote_otp_email_mismatch", _client_ip(), "vote", None)
             return render_template("vote_request_otp.html")
 
         # ค้นหาจาก members ก่อน ถ้าไม่เจอให้ลอง users แล้ว auto-create
