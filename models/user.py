@@ -138,10 +138,21 @@ class User(UserMixin):
 
     @classmethod
     def get_imported(cls) -> list["User"]:
-        """ผู้ใช้ที่นำเข้าจาก Excel (source='excel') — สำหรับหน้าจัดการเป็นชุด"""
+        """ผู้ใช้ที่นำเข้าจาก Excel (source='excel')"""
         conn = get_db()
         cur  = conn.cursor(dictionary=True)
         cur.execute("SELECT * FROM users WHERE source = 'excel' ORDER BY id DESC")
+        rows = cur.fetchall()
+        cur.close()
+        return [cls(r) for r in rows]
+
+    @classmethod
+    def get_voters(cls) -> list["User"]:
+        """ผู้ใช้ role=voter ทั้งหมด (ทั้งที่นำเข้า Excel และที่สมัครเอง)
+        — สำหรับหน้าจัดการ/ลบเป็นชุด"""
+        conn = get_db()
+        cur  = conn.cursor(dictionary=True)
+        cur.execute("SELECT * FROM users WHERE role = 'voter' ORDER BY id DESC")
         rows = cur.fetchall()
         cur.close()
         return [cls(r) for r in rows]

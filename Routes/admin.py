@@ -448,9 +448,9 @@ def toggle_user_active(user_id: int):
 @admin_bp.route("/users/imported")
 @admin_required
 def imported_users():
-    """หน้าจัดการผู้ใช้ที่นำเข้าจาก Excel — แก้ไข/ลบเป็นชุด"""
+    """หน้าจัดการผู้ใช้ role=voter ทั้งหมด (นำเข้า Excel + สมัครเอง) — แก้ไข/ลบเป็นชุด"""
     from models.user import User
-    users = User.get_imported()
+    users = User.get_voters()
     return render_template("admin/imported_users.html", users=users)
 
 
