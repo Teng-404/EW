@@ -1,25 +1,13 @@
 """
-routes/admin.py — Admin Blueprint  (README v3 — patched)
+routes/admin.py — Admin Blueprint  (README v3 — patched + Excel→users + bulk manage)
 
-แก้ไขจากเดิม:
-  - create_user()  — ส่งต่อ role ที่เลือกจากฟอร์ม (เดิมสร้างเป็น voter เสมอ)
-  - เพิ่ม manage_voters() + export_voters() — รองรับหน้า/ลิงก์ admin.export_voters
-    ที่ voters.html เรียกใช้ (เดิมไม่มี route → หน้า crash)
-
-เส้นทางหลัก:
-  GET/POST  /admin/members/import      — นำเข้า Excel สมาชิก
-  GET/POST  /admin/system              — เปิด/ระงับแต่ละระบบ
-  GET       /admin/logs                — ดู Log การใช้งาน
-  GET       /admin/logs/export         — export Log เป็น Excel/PDF
-  GET       /admin/reports             — รายงานทั้งหมด
-  GET       /admin/reports/*/export    — รายงานต่าง ๆ
-  GET       /admin/elections/<id>/voters         — รายชื่อผู้มาใช้สิทธิ
-  GET       /admin/elections/<id>/voters/export  — export ผู้มาใช้สิทธิ
-  POST      /admin/reset               — ลบข้อมูลผลเลือกตั้งและยืนยันตัวตน
-
-หมายเหตุ v3 — ความลับ/ความโปร่งใส:
-  - รายงาน "ผู้มาใช้สิทธิ" ดึงจาก Turnout (member จริง — ตรวจสอบได้)
-  - บัตรลงคะแนน (votes) ไม่มีตัวระบุผู้ลงคะแนน — ย้อนรอยไม่ได้
+แก้ไข/เพิ่มจากเดิม:
+  - create_user()           — ส่งต่อ role ที่เลือกจากฟอร์ม
+  - manage_voters()/export_voters() — รายชื่อผู้มาใช้สิทธิ
+  - import_members()        — นำเข้า Excel เป็น users (อ่าน A=ชื่อ B=username C=email D=password)
+  - imported_users()        — หน้าจัดการผู้ใช้ที่นำเข้าจาก Excel (แก้/ลบเป็นชุด)
+  - bulk_delete_users()     — ลบผู้ใช้ที่เลือกหลายคนพร้อมกัน
+  - update_user_profile()   — แก้ไขชื่อ/username/email/รหัสผ่าน ของผู้ใช้รายคน
 """
 
 import io
@@ -95,7 +83,7 @@ def _make_xlsx(ws_title: str, headers: list, rows: list, col_widths: list) -> io
 ALLOWED_IMG_EXT = {".jpg", ".jpeg", ".png", ".gif", ".webp"}
 
 def _save_candidate_photo(file_storage):
-    """บันทึกไฟล์รูปผู้สมัคร → คืน URL path (/static/...) หรือ None ถ้าไม่มีไฟล์
+    """บันทึกไฟล์รูปผู้สมัคร -> คืน URL path (/static/...) หรือ None ถ้าไม่มีไฟล์
     raise ValueError ถ้านามสกุลไฟล์ไม่รองรับ"""
     if not file_storage or not file_storage.filename:
         return None
@@ -229,7 +217,6 @@ def add_candidate(election_id: int):
     number    = request.form.get("number", type=int)
     photo_url = request.form.get("photo_url", "").strip()
 
-    # อัปโหลดไฟล์ก่อน ถ้ามีไฟล์ ใช้ไฟล์แทน URL
     try:
         uploaded = _save_candidate_photo(request.files.get("photo"))
     except ValueError as e:
@@ -276,11 +263,11 @@ def edit_candidate(candidate_id: int):
         return redirect(url_for("admin.manage_candidates", election_id=candidate.election_id))
 
     if uploaded:
-        new_photo = uploaded          # อัปโหลดไฟล์ใหม่
+        new_photo = uploaded
     elif photo_url_text:
-        new_photo = photo_url_text    # ใส่ URL
+        new_photo = photo_url_text
     else:
-        new_photo = None              # ไม่กรอกอะไร → คงรูปเดิมไว้
+        new_photo = None
 
     candidate.update(
         name, party=party, bio=bio, photo_url=new_photo, number=number,
@@ -385,7 +372,6 @@ def create_user():
         return redirect(url_for("admin.manage_users"))
 
     user = User.create(username, email, password, full_name)
-    # ★ User.create() สร้างเป็น voter เสมอ — ถ้าเลือก admin ต้องตั้ง role ต่อ
     if role == "admin":
         try:
             user.set_role("admin")
@@ -457,11 +443,65 @@ def toggle_user_active(user_id: int):
     return redirect(url_for("admin.manage_users"))
 
 
-# ── Members import ─────────────────────────────────────────
+# ── Imported users (จัดการเป็นชุด) ─────────────────────────
+
+@admin_bp.route("/users/imported")
+@admin_required
+def imported_users():
+    """หน้าจัดการผู้ใช้ที่นำเข้าจาก Excel — แก้ไข/ลบเป็นชุด"""
+    from models.user import User
+    users = User.get_imported()
+    return render_template("admin/imported_users.html", users=users)
+
+
+@admin_bp.route("/users/imported/bulk-delete", methods=["POST"])
+@admin_required
+def bulk_delete_users():
+    """ลบผู้ใช้ที่เลือกหลายคนพร้อมกัน (เฉพาะ role=voter)"""
+    from models.user import User
+    ids = request.form.getlist("ids", type=int)
+    ids = [i for i in ids if i != current_user.id]
+    if not ids:
+        flash("ยังไม่ได้เลือกผู้ใช้", "warning")
+        return redirect(url_for("admin.imported_users"))
+    n = User.bulk_delete(ids)
+    flash(f"ลบผู้ใช้ {n} บัญชีแล้ว", "info")
+    return redirect(url_for("admin.imported_users"))
+
+
+@admin_bp.route("/users/<int:user_id>/update", methods=["POST"])
+@admin_required
+def update_user_profile(user_id: int):
+    """แก้ไขชื่อ-สกุล / username / email / รหัสผ่าน ของผู้ใช้รายคน"""
+    from models.user import User
+    user = User.get_by_id_any(user_id)
+    if not user:
+        abort(404)
+    full_name = request.form.get("full_name", "").strip()
+    username  = request.form.get("username", "").strip()
+    email     = request.form.get("email", "").strip().lower()
+    password  = request.form.get("password", "").strip()
+    try:
+        user.update_profile(
+            full_name=full_name or None,
+            username=username or None,
+            email=email or None,
+        )
+        if password:
+            user.set_password(password)
+        flash(f"บันทึกข้อมูลของ '{user.full_name}' แล้ว", "success")
+    except Exception:
+        flash("แก้ไขไม่สำเร็จ — อาจมีชื่อ-สกุล / username / email ซ้ำกับคนอื่น", "danger")
+    return redirect(url_for("admin.imported_users"))
+
+
+# ── Members import (สร้างเป็น users — ล็อกอินด้วยรหัสผ่านได้) ──
 
 @admin_bp.route("/members/import", methods=["GET", "POST"])
 @admin_required
 def import_members():
+    from models.user import User
+
     if request.method == "POST":
         f = request.files.get("file")
         if not f or not f.filename.endswith((".xlsx", ".xls")):
@@ -472,24 +512,32 @@ def import_members():
             wb   = openpyxl.load_workbook(f, read_only=True, data_only=True)
             ws   = wb.active
             rows = []
-            for i, row in enumerate(ws.iter_rows(min_row=2, values_only=True)):
+            for row in ws.iter_rows(min_row=2, values_only=True):
                 if not row or not row[0]:
                     continue
                 full_name = str(row[0]).strip()
-                email     = str(row[1]).strip().lower() if len(row) > 1 and row[1] else None
-                rows.append({"full_name": full_name, "email": email})
-            result = Member.upsert_all(rows)
+                username  = str(row[1]).strip()         if len(row) > 1 and row[1] else None
+                email     = str(row[2]).strip().lower() if len(row) > 2 and row[2] else None
+                password  = str(row[3]).strip()         if len(row) > 3 and row[3] else None
+                rows.append({
+                    "full_name": full_name,
+                    "username":  username,
+                    "email":     email,
+                    "password":  password,
+                })
+
+            result = User.import_from_rows(rows)
             flash(
                 f"นำเข้าสำเร็จ — เพิ่มใหม่ {result['added']} คน, "
                 f"อัปเดต {result['updated']} คน, "
-                f"ข้าม {result['skipped']} คน (verified แล้ว)",
+                f"ข้าม {result['skipped']} คน",
                 "success",
             )
         except Exception as e:
             flash(f"เกิดข้อผิดพลาด: {e}", "danger")
         return redirect(url_for("admin.import_members"))
 
-    total = len(Member.get_all())
+    total = len(User.get_all())
     return render_template("admin/import_members.html", total=total)
 
 

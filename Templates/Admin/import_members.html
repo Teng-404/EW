@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}นำเข้าสมาชิก — Admin{% endblock %}
+{% block title %}นำเข้าผู้ใช้ — Admin{% endblock %}
 
 {% block content %}
 <div class="mb-3">
@@ -7,8 +7,8 @@
     <svg style="width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round" viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
     Dashboard
   </a>
-  <h1>นำเข้าสมาชิกจาก Excel</h1>
-  <p style="font-size:13px; color:var(--text-3); margin-top:4px;">สมาชิกในระบบปัจจุบัน <strong>{{ total }}</strong> คน</p>
+  <h1>นำเข้าผู้ใช้จาก Excel</h1>
+  <p style="font-size:13px; color:var(--text-3); margin-top:4px;">บัญชีผู้ใช้ในระบบปัจจุบัน <strong>{{ total }}</strong> บัญชี</p>
 </div>
 
 <div class="grid-2" style="align-items:start; gap:20px;">
@@ -25,7 +25,6 @@
       <form method="POST" action="{{ url_for('admin.import_members') }}" enctype="multipart/form-data" id="importForm">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
 
-        {# Custom file input #}
         <div class="form-group">
           <label>ไฟล์ Excel (.xlsx / .xls)</label>
           <div id="dropZone" style="
@@ -46,20 +45,23 @@
           </div>
           <input type="file" id="fileInput" name="file" accept=".xlsx,.xls" required style="display:none"
                  onchange="updateLabel(this)" />
-          <div class="form-hint" style="margin-top:6px;">คอลัมน์ A = ชื่อ-นามสกุล, คอลัมน์ B = Email (row 1 เป็น header)</div>
+          <div class="form-hint" style="margin-top:6px;">A = ชื่อ-นามสกุล, B = Username, C = Email, D = รหัสผ่าน (row 1 เป็น header)</div>
         </div>
 
-        {# Info box #}
         <div style="background:var(--sky-light); border:1px solid rgba(59,125,216,.2); border-radius:var(--radius); padding:12px 14px; font-size:12px; color:var(--navy-mid); margin-bottom:16px;">
           <div style="font-weight:600; margin-bottom:6px; display:flex; align-items:center; gap:6px;">
             <svg style="width:13px;height:13px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
             พฤติกรรมการนำเข้า (Upsert)
           </div>
           <ul style="margin:0; padding-left:16px; line-height:2;">
-            <li>ชื่อใหม่ที่ไม่มีในระบบ → <strong>เพิ่มใหม่</strong></li>
-            <li>ชื่อที่มีอยู่แล้ว ยังไม่ยืนยันตัวตน → <strong>อัปเดต Email</strong></li>
-            <li>ชื่อที่ยืนยันตัวตนแล้ว → <strong>ข้าม</strong> (ไม่แตะข้อมูล)</li>
+            <li>ชื่อ/Email ใหม่ + มีรหัสผ่าน → <strong>สร้างบัญชีผู้ใช้ใหม่</strong> (role: voter)</li>
+            <li>เว้นช่อง Username → ระบบสร้างจาก Email ให้อัตโนมัติ</li>
+            <li>มีบัญชีอยู่แล้ว → <strong>อัปเดต Email + รหัสผ่าน + Username</strong></li>
+            <li>คนใหม่ที่ไม่มีรหัสผ่าน → <strong>ข้าม</strong></li>
           </ul>
+          <div style="margin-top:8px; padding-top:8px; border-top:1px solid rgba(59,125,216,.2); color:var(--text-2);">
+            ผู้ใช้ที่นำเข้าจะ <strong>ล็อกอินด้วย Email หรือ Username + รหัสผ่าน</strong> ได้ทันที
+          </div>
         </div>
 
         <button type="submit" class="btn btn-primary btn-block btn-lg">
@@ -73,7 +75,6 @@
   {# ── ขวา: รูปแบบไฟล์ + สถานะ ── #}
   <div style="display:flex; flex-direction:column; gap:16px;">
 
-    {# รูปแบบไฟล์ #}
     <div class="card">
       <div class="card-header">
         <div style="display:flex; align-items:center; gap:8px;">
@@ -84,33 +85,35 @@
       <div class="card-body" style="padding:0;">
         <table class="table" style="font-size:12px;">
           <thead>
-            <tr><th>A — ชื่อ-นามสกุล</th><th>B — Email</th></tr>
+            <tr><th>A — ชื่อ-นามสกุล</th><th>B — Username</th><th>C — Email</th><th>D — รหัสผ่าน</th></tr>
           </thead>
           <tbody>
-            <tr><td>สมชาย ใจดี</td><td>somchai@example.com</td></tr>
-            <tr><td>สมหญิง รักดี</td><td>somying@example.com</td></tr>
-            <tr><td>...</td><td>...</td></tr>
+            <tr><td>สมชาย ใจดี</td><td>somchai</td><td>somchai@example.com</td><td>pass1234</td></tr>
+            <tr><td>สมหญิง รักดี</td><td><span style="color:var(--text-3);">(เว้นว่าง)</span></td><td>somying@example.com</td><td>pass5678</td></tr>
+            <tr><td>...</td><td>...</td><td>...</td><td>...</td></tr>
           </tbody>
         </table>
       </div>
       <div class="card-footer" style="font-size:11px; color:var(--text-3);">
-        Row 1 เป็น header — ระบบจะข้ามแถวแรกอัตโนมัติ
+        Row 1 เป็น header • Username เว้นว่างได้ • รหัสผ่าน hash ด้วย bcrypt ก่อนเก็บ
       </div>
     </div>
 
-    {# สถานะสมาชิก #}
     <div class="card">
       <div class="card-header">
         <span style="font-size:13px; font-weight:500;">สถานะระบบ</span>
       </div>
       <div class="card-body">
         <div style="display:flex; align-items:center; justify-content:space-between; padding:8px 0; border-bottom:1px solid var(--border);">
-          <span style="font-size:12px; color:var(--text-2);">สมาชิกทั้งหมด</span>
+          <span style="font-size:12px; color:var(--text-2);">บัญชีผู้ใช้ทั้งหมด</span>
           <span style="font-size:18px; font-weight:300; color:var(--text-1);">{{ total }}</span>
         </div>
-        <div style="padding-top:12px;">
-          <a href="{{ url_for('admin.dashboard') }}" class="btn btn-ghost btn-sm btn-block">
-            ดูภาพรวม Dashboard →
+        <div style="padding-top:12px; display:flex; flex-direction:column; gap:8px;">
+          <a href="{{ url_for('admin.imported_users') }}" class="btn btn-outline btn-sm btn-block">
+            จัดการผู้ใช้ที่นำเข้า (แก้ไข/ลบเป็นชุด) →
+          </a>
+          <a href="{{ url_for('admin.manage_users') }}" class="btn btn-ghost btn-sm btn-block">
+            ดูผู้ใช้ทั้งหมด →
           </a>
         </div>
       </div>

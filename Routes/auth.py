@@ -1,7 +1,7 @@
 """
 routes/auth.py — Authentication Blueprint  (patched)
 
-GET/POST /login        — เข้าสู่ระบบ
+GET/POST /login        — เข้าสู่ระบบ (รองรับ login ด้วย username หรือ email)
 GET/POST /register     — สมัครสมาชิก
 GET      /logout       — ออกจากระบบ
 
@@ -13,6 +13,9 @@ GET      /logout       — ออกจากระบบ
     แบบ member-based ทั้งหมดแล้ว — โค้ดเก่าจึงเป็น dead code ที่ทำให้สับสน
   - หากมีไฟล์ templates/auth/verify_otp.html ค้างอยู่ สามารถลบทิ้งได้
     (ไม่มี route ใดเรนเดอร์อีกต่อไป)
+  - login() รองรับการกรอกได้ทั้ง "ชื่อผู้ใช้" หรือ "อีเมล"
+    เพราะผู้ใช้ที่นำเข้าจาก Excel จะได้ username อัตโนมัติ จึงสะดวกกว่า
+    หากให้ใช้อีเมลล็อกอินได้ด้วย (ช่องในหน้า login ยังชื่อ username เหมือนเดิม)
 """
 
 from flask import (
@@ -83,7 +86,11 @@ def login():
         password = request.form.get("password", "")
         remember = bool(request.form.get("remember"))
 
+        # รองรับล็อกอินด้วย username หรือ email
         user = User.get_by_username(username)
+        if not user:
+            user = User.get_by_email(username.lower())
+
         if not user or not user.check_password(password):
             flash("ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง", "danger")
             return render_template("auth/login.html", username=username)

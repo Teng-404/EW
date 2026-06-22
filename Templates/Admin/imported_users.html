@@ -1,0 +1,158 @@
+{% extends "base.html" %}
+{% block title %}จัดการผู้ใช้ที่นำเข้า — Admin{% endblock %}
+
+{% block content %}
+<div class="d-flex align-center justify-between flex-wrap gap-2 mb-3">
+  <div>
+    <a href="{{ url_for('admin.import_members') }}" class="btn btn-ghost btn-sm mb-1" style="padding-left:6px;">
+      <svg style="width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round" viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
+      นำเข้า Excel
+    </a>
+    <h1>ผู้ใช้ที่นำเข้าจาก Excel</h1>
+    <p style="font-size:13px; color:var(--text-3); margin-top:4px;">{{ users | length }} บัญชี — เลือกเพื่อลบเป็นชุด หรือกด "แก้ไข" รายคน</p>
+  </div>
+</div>
+
+{# ── ฟอร์มลบเป็นชุด (checkbox อ้างถึงฟอร์มนี้ผ่าน attribute form=) ── #}
+<form id="bulkForm" method="POST" action="{{ url_for('admin.bulk_delete_users') }}"
+      data-confirm="ลบผู้ใช้ที่เลือกทั้งหมด? การกระทำนี้ย้อนกลับไม่ได้" data-confirm-danger>
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+</form>
+
+<div class="card">
+  <div class="card-header" style="gap:12px; flex-wrap:wrap;">
+    <span style="font-size:13px; font-weight:500;">
+      เลือกแล้ว <span id="selCount">0</span> รายการ
+    </span>
+    <div style="display:flex; gap:8px; align-items:center;">
+      <input type="text" id="searchInput" class="form-control"
+             style="max-width:200px; font-size:12px; padding:6px 10px;"
+             placeholder="ค้นหาชื่อ / username / email…" oninput="filterTable()" />
+      <button type="submit" form="bulkForm" class="btn btn-danger btn-sm" id="bulkDeleteBtn" disabled>
+        ลบที่เลือก
+      </button>
+    </div>
+  </div>
+
+  {% if users %}
+  <div class="table-wrap">
+    <table class="table" id="usersTable">
+      <thead>
+        <tr>
+          <th style="width:36px;"><input type="checkbox" id="selectAll" onclick="toggleAll(this)" style="width:15px;height:15px;accent-color:var(--navy-mid);" /></th>
+          <th>ID</th>
+          <th>ชื่อ-นามสกุล</th>
+          <th>Username</th>
+          <th>Email</th>
+          <th>สถานะ</th>
+          <th>การดำเนินการ</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for u in users %}
+        <tr id="row-{{ u.id }}">
+          <td>
+            <input type="checkbox" name="ids" value="{{ u.id }}" form="bulkForm"
+                   class="rowCheck" onchange="updateSel()"
+                   style="width:15px;height:15px;accent-color:var(--navy-mid);" />
+          </td>
+          <td style="color:var(--text-3); font-size:11px;">{{ u.id }}</td>
+          <td style="font-weight:500;">{{ u.full_name }}</td>
+          <td style="color:var(--text-3); font-size:12px;">{{ u.username }}</td>
+          <td style="font-size:12px;">{{ u.email }}</td>
+          <td>
+            <span style="font-size:12px; font-weight:500; color:{% if u.is_active %}var(--green){% else %}var(--red){% endif %}">
+              {{ 'ใช้งานได้' if u.is_active else 'ถูกระงับ' }}
+            </span>
+          </td>
+          <td>
+            <div style="display:flex; gap:6px;">
+              <button type="button" onclick="toggleEdit({{ u.id }})" class="btn btn-outline btn-sm">แก้ไข</button>
+              <form method="POST" action="{{ url_for('admin.bulk_delete_users') }}" style="display:inline;"
+                    data-confirm="ลบ {{ u.full_name }}?" data-confirm-danger>
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+                <input type="hidden" name="ids" value="{{ u.id }}" />
+                <button type="submit" class="btn btn-danger btn-sm">ลบ</button>
+              </form>
+            </div>
+          </td>
+        </tr>
+
+        {# แถวแก้ไข (inline) #}
+        <tr id="edit-{{ u.id }}" style="display:none; background:var(--sky-light);">
+          <td colspan="7" style="padding:14px 16px;">
+            <form method="POST" action="{{ url_for('admin.update_user_profile', user_id=u.id) }}">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+              <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:10px;">
+                <div>
+                  <label style="font-size:11px;">ชื่อ-นามสกุล</label>
+                  <input type="text" name="full_name" class="form-control" value="{{ u.full_name }}" />
+                </div>
+                <div>
+                  <label style="font-size:11px;">Username</label>
+                  <input type="text" name="username" class="form-control" value="{{ u.username }}" />
+                </div>
+                <div>
+                  <label style="font-size:11px;">Email</label>
+                  <input type="email" name="email" class="form-control" value="{{ u.email }}" />
+                </div>
+                <div>
+                  <label style="font-size:11px;">รหัสผ่านใหม่ <span style="color:var(--text-3);">(เว้นว่าง = ไม่เปลี่ยน)</span></label>
+                  <input type="text" name="password" class="form-control" placeholder="••••••••" />
+                </div>
+              </div>
+              <div style="display:flex; gap:8px;">
+                <button type="submit" class="btn btn-primary btn-sm">บันทึก</button>
+                <button type="button" onclick="toggleEdit({{ u.id }})" class="btn btn-ghost btn-sm">ยกเลิก</button>
+              </div>
+            </form>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="card-body empty-state">
+    <div class="empty-icon">👥</div>
+    <p>ยังไม่มีผู้ใช้ที่นำเข้าจาก Excel</p>
+    <a href="{{ url_for('admin.import_members') }}" class="btn btn-primary mt-2">ไปนำเข้า Excel</a>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function updateSel() {
+  const n = document.querySelectorAll('.rowCheck:checked').length;
+  document.getElementById('selCount').textContent = n;
+  document.getElementById('bulkDeleteBtn').disabled = n === 0;
+  const all = document.querySelectorAll('.rowCheck').length;
+  document.getElementById('selectAll').checked = (n > 0 && n === all);
+}
+
+function toggleAll(src) {
+  document.querySelectorAll('.rowCheck').forEach(cb => {
+    const row = cb.closest('tr');
+    if (row.style.display !== 'none') cb.checked = src.checked;
+  });
+  updateSel();
+}
+
+function toggleEdit(id) {
+  const row = document.getElementById('edit-' + id);
+  row.style.display = row.style.display === 'none' ? 'table-row' : 'none';
+}
+
+function filterTable() {
+  const q = document.getElementById('searchInput').value.toLowerCase();
+  document.querySelectorAll('#usersTable tbody tr[id^="row-"]').forEach(row => {
+    const show = row.textContent.toLowerCase().includes(q);
+    row.style.display = show ? '' : 'none';
+    const editRow = document.getElementById('edit-' + row.id.replace('row-', ''));
+    if (editRow && !show) editRow.style.display = 'none';
+  });
+}
+</script>
+{% endblock %}

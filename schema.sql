@@ -33,6 +33,7 @@ CREATE TABLE IF NOT EXISTS members (
     email_new  VARCHAR(100),
     verified   BOOLEAN      NOT NULL DEFAULT FALSE,
     created_at DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    source     VARCHAR(20)  NOT NULL DEFAULT 'self',
 
     INDEX idx_members_email     (email),
     INDEX idx_members_email_new (email_new),

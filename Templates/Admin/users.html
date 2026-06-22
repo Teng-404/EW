@@ -11,6 +11,10 @@
     <h1>จัดการผู้ใช้</h1>
     <p style="font-size:13px; color:var(--text-3); margin-top:4px;">{{ users | length }} บัญชีในระบบ</p>
   </div>
+  <div style="display:flex; gap:8px; flex-wrap:wrap;">
+    <a href="{{ url_for('admin.imported_users') }}" class="btn btn-outline btn-sm">จัดการผู้ใช้ที่นำเข้า</a>
+    <a href="{{ url_for('admin.import_members') }}" class="btn btn-primary btn-sm">+ นำเข้าจาก Excel</a>
+  </div>
 </div>
 
 <div class="card">
@@ -29,6 +33,7 @@
           <th>Username</th>
           <th>Email</th>
           <th>โรล</th>
+          <th>ที่มา</th>
           <th>สถานะ</th>
           <th>การดำเนินการ</th>
         </tr>
@@ -41,6 +46,7 @@
           <td style="color:var(--text-3); font-size:12px;">{{ u.username }}</td>
           <td style="font-size:12px;">{{ u.email }}</td>
           <td><span class="badge badge-{{ u.role }}">{{ u.role }}</span></td>
+          <td style="font-size:11px; color:var(--text-3);">{{ 'Excel' if u.source == 'excel' else 'สมัครเอง' }}</td>
           <td>
             <span style="font-size:12px; font-weight:500; color:{% if u.is_active %}var(--green){% else %}var(--red){% endif %}">
               {{ 'ใช้งานได้' if u.is_active else 'ถูกระงับ' }}
